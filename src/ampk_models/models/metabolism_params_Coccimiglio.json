@@ -1,0 +1,42 @@
+{
+    "metab_params_basal": {
+        "kGly": 0.5,
+        "kHydro": 0.15,
+        "VforAK": 14.66,
+        "KeqAK": 2.221,
+        "kmm": 0.32,
+        "kmd": 0.35,
+        "kmt": 0.27,
+        "VmaxOxPhos": 0.5,
+        "Kadp": 5.8e-2,
+        "n": 2.568,
+        "VforCK":1e2,
+        "Kb":1.11,
+        "Kia":0.135,
+        "Kib":3.9,
+        "Kiq":3.5,
+        "Kp":3.8,
+        "KeqCK":1.77e2,
+        "TCr":39.0
+    },
+    "metab_params_stress": {
+        "kGly": 0.005,
+        "kHydro": 0.15,
+        "VforAK": 14.66,
+        "KeqAK": 2.221,
+        "kmm": 0.32,
+        "kmd": 0.35,
+        "kmt": 0.27,
+        "VmaxOxPhos": 0.5,
+        "Kadp": 5.8e-2,
+        "n": 2.568,
+        "VforCK":1e2,
+        "Kb":1.11,
+        "Kia":0.135,
+        "Kib":3.9,
+        "Kiq":3.5,
+        "Kp":3.8,
+        "KeqCK":1.77e2,
+        "TCr":39.0
+    }
+}
