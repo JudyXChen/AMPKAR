@@ -1,0 +1,36 @@
+# Requirements for AMPK project
+# Note: some packages (e.g. jax/jaxlib) have platform-specific wheels.
+# Install jax and jaxlib following official instructions: https://github.com/google/jax
+
+# Core scientific computing
+numpy
+pandas
+scipy
+sympy
+
+# Plotting and visualization
+matplotlib
+seaborn
+met_brewer
+
+# JAX ecosystem
+jax
+jaxlib
+equinox
+diffrax
+lineax
+
+# Probabilistic programming / Bayesian inference
+pymc
+pytensor
+numpyro
+arviz
+nutpie
+pymc-extras>=0.2.0,<0.3.0  # Compatible with pymc 5.20.x
+preliz
+
+# Sensitivity analysis
+SALib
+
+# Jupyter notebook widgets
+ipywidgets
