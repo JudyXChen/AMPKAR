@@ -71,7 +71,7 @@ def load_data(data_file, to_seconds=False, constant_std=False):
 
     # handle time, convert to seconds if specified
     times = data['times']
-    zero_idx = int(np.where(times==0.0)[0]) # we only want values after the 2-DG stimulus
+    zero_idx = int(np.where(times==0.0)[0][0]) # we only want values after the 2-DG stimulus
     if to_seconds:
         mult = 60
     else:
