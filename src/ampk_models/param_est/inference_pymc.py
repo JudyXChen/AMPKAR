@@ -15,6 +15,7 @@ from jax import random
 import arviz as az
 from numpyro.infer import Predictive
 import sys, argparse, json, os
+import matplotlib.pyplot as plt
 
 sys.path.append("../")
 from utils import *
