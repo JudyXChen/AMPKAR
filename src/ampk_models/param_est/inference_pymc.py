@@ -241,10 +241,13 @@ def main(raw_args=None):
                                 random_seed=args.seed, chain_method=args.chain_method_numpyro, 
                                 progressbar=True, idata_kwargs={'log_likelihood': True})
         elif args.sampler == "ADVI":
+            # Set initial values to nominal params to avoid inf loss at default starting point
+            initvals = {p: model_info['nominal_params'][p] for p in free_params}
             with pm_model:
-                mean_field = pm.fit(n=args.n_advi_iter, method='advi', 
-                                callbacks=[CheckParametersConvergence(diff='absolute', tolerance=1e-3)], 
-                                obj_optimizer=pm.adam)
+                mean_field = pm.fit(n=args.n_advi_iter, method='advi',
+                                callbacks=[CheckParametersConvergence(diff='absolute', tolerance=1e-3)],
+                                obj_optimizer=pm.adam,
+                                start=initvals)
                 
                 
 
