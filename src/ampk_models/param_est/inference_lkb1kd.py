@@ -1,3 +1,7 @@
+import multiprocessing
+if multiprocessing.get_start_method() != 'spawn':
+    multiprocessing.set_start_method('spawn', force=True)
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -10,11 +14,14 @@ import nutpie
 from pymc.variational.callbacks import CheckParametersConvergence
 from pytensor.link.jax.dispatch import jax_funcify
 from pymc.stats.log_density import compute_log_likelihood
+import pymc_extras as pmx
+import matplotlib.pyplot as plt
 
 from jax import random
 import arviz as az
 from numpyro.infer import Predictive
 import sys, argparse, json, os
+sys.setrecursionlimit(50000)
 
 sys.path.append("../")
 from utils import *
@@ -23,7 +30,7 @@ from pymc_jax_ode import *
 sys.path.append("../models/")
 
 # tell jax to use 64bit floats
-jax.config.update('jax_platform_name', 'cpu')
+#jax.config.update('jax_platform_name', 'cpu')
 jax.config.update("jax_enable_x64", True)
 
 ##############################
@@ -32,19 +39,21 @@ jax.config.update("jax_enable_x64", True)
 def parse_args(raw_args=None):
     """ function to parse command line arguments
     """
-    parser=argparse.ArgumentParser(description="Run MCMC for AMPK models.")
+    parser=argparse.ArgumentParser(description="Run MCMC for AMPK models w/WT and LKB1kd data.")
     # model info and general setup
     parser.add_argument("-model", type=str, help="model to process.")
     parser.add_argument("-compartment", type=str, help="compartment to which data belongs.")
     parser.add_argument("-free_params", type=str, help="parameters to estimate")
     parser.add_argument("-data_file", type=str, help="path to the data file. Should be a NPZ with the following objects: \
                         'times', 'mean', 'std_constant', and 'std'.")
-    parser.add_argument("-model_info_file", type=str, help="JSON file with relevant info. Model params, initial conditions, and AMPKAR states.")
+    parser.add_argument("-LKB1_KO_data_file", type=str, help="path to the LKB1kd data file. Should be a NPZ with the following objects: \
+                        'times', 'mean', 'std_constant', and 'std'.")
+    parser.add_argument("-model_info_file", type=str, help="JSON file with relevant info. \
+                        Model params, initial conditions, and AMPKAR states.")
     parser.add_argument("-metab_params_file", type=str, help="Metabolism model parameters. Should be a JSON")
     parser.add_argument("-savedir", type=str, help="Path to save results. Defaults to current directory.")
     # MCMC sampling
     parser.add_argument("-prior_family", type=str, default="[['Gamma()',['alpha', 'beta']]]", help="Family of priors to use. Defaults to 'lognormal'.")
-    parser.add_argument("-normalization", type=str, default='ratio', help="Normalization to use for the data. Defaults to 'ratio'.")
     parser.add_argument("-nwarmup", type=int, default=1000, help="Number of MCMC tuning samples. Defaults to 1000.")
     parser.add_argument("-nsamples", type=int, default=1000, help="Number of posterior samples to draw per MCMC chain. Defaults to 1000.")
     parser.add_argument("-nchains", type=int, default=1, help="Number of chains to run. Defaults to 1.")
@@ -66,6 +75,8 @@ def parse_args(raw_args=None):
     parser.add_argument("--sample_posterior", action='store_true', help="Flag to sample from the posterior.")
     parser.add_argument("--compute_llike", action='store_true', help="Flag to resample the posterior predictive using previous param samples.")
     parser.add_argument("-n_advi_iter", type=int, default=1000, help="Number of iterations for ADVI. Defaults to 1000.")
+    parser.add_argument("-data_std_max", type=float, default=1.0, help="Scaling factor to change WT data std.")
+    parser.add_argument("-maxiter_pathfinder", type=int, default=1000, help="Max L-BFGS iterations for Pathfinder. Defaults to 1000.")
 
     
     args=parser.parse_args(raw_args)
@@ -135,33 +146,36 @@ def main(raw_args=None):
     ############################################
     # load the data
     # converts from min to seconds
-    data, data_std, times = load_data(args.data_file, to_seconds=True, constant_std=False)
+    # WT
+    data, data_std, times = load_data(args.data_file, to_seconds=True, 
+                                      constant_std=False)
     data = data.reshape(1, len(data))
-    data_std = data_std.reshape(1, len(data_std))
+    scale = args.data_std_max/np.max(data_std)
+    data_std = data_std.reshape(1, len(data_std))*scale
+    
+    # LKB1 KO
+    data_LKB1_KO, data_std_LKB1_KO, _ = load_data(args.LKB1_KO_data_file,
+                                                  to_seconds=True, 
+                                                  constant_std=False)
+    data_LKB1_KO = data_LKB1_KO.reshape(1, len(data_LKB1_KO))
+    scale_lkb1 = args.data_std_max/np.max(data_std_LKB1_KO)
+    data_std_LKB1_KO = data_std_LKB1_KO.reshape(1, len(data_std_LKB1_KO))*scale_lkb1
 
     ############################################
     # Simulator func #
     ############################################
-    # normaliztion func
-    if args.normalization == 'ratio':
-        def norm_func(pAMPKAR_stressed, AMPKAR_stressed, pAMPKAR_basal, AMPKAR_basal):
-            return (pAMPKAR_stressed / AMPKAR_stressed)
-    elif args.normalization == 'delta_ratio':
-        def norm_func(pAMPKAR_stressed, AMPKAR_stressed, pAMPKAR_basal, AMPKAR_basal):
-            return (pAMPKAR_stressed / AMPKAR_stressed) - (pAMPKAR_basal / AMPKAR_basal)
     # def simulation function that solves ODE and computes proper qoi
-    # the solve_traj function first runs the model to SS in the basal energy state, and then 
+    # the solve_traj function first runs the model to SS in the basal energy state, and then
     # runs the model in the stressed energy state using the SS from the basal state as the initial condition
+
     def simulator(params):
         # solve model
-        sol_stressed, sol_basal = solve_traj(rhs, rhs_stress, y0, params, times, tmax_init=args.tmax_init, rtol=args.rtol, atol=args.atol, evnt_atol=args.evnt_atol, evnt_rtol=args.evnt_rtol, pcoeff=args.pcoeff, icoeff=args.icoeff, dcoeff=args.dcoeff, dt0=1e-10)
+        sol_stressed, _ = solve_traj(rhs, rhs_stress, y0, params, times, tmax_init=args.tmax_init, rtol=args.rtol, atol=args.atol, evnt_atol=args.evnt_atol, evnt_rtol=args.evnt_rtol, pcoeff=args.pcoeff, icoeff=args.icoeff, dcoeff=args.dcoeff, dt0=1e-10)
 
         # compute delta pAMPKAR/AMPKAR_tot
-        AMPKAR_basal = sol_basal[jnp.array(ampkar_idxs)].sum(axis=0)
-        pAMPKAR_basal = sol_basal[jnp.array(pampkar_idxs)].sum(axis=0)
         AMPKAR_stressed = sol_stressed[jnp.array(ampkar_idxs), :].sum(axis=0)
         pAMPKAR_stressed = sol_stressed[jnp.array(pampkar_idxs), :].sum(axis=0)
-        result = norm_func(pAMPKAR_stressed, AMPKAR_stressed, pAMPKAR_basal, AMPKAR_basal)
+        result = pAMPKAR_stressed / AMPKAR_stressed
         
         return jnp.reshape(result, (1, len(result)))
     
@@ -177,7 +191,7 @@ def main(raw_args=None):
 
     vjp_sol_op_jax_jitted = eqx.filter_jit(vjp_sol_op_jax)
 
-    if args.sampler in ['NUTS', 'NUTS-ADVI', 'Nutpie', 'ADVI']:
+    if args.sampler in ['NUTS', 'NUTS-ADVI', 'Nutpie', 'ADVI','Pathfinder']:
         # if using Pymc or Nutpie samplers, then we need the Pytensor op for the grads
         vjp_sol_op = VJPSolOp(vjp_sol_op_jax_jitted)
         sol_op = SolOp(sol_op_jax_jitted, vjp_sol_op)
@@ -204,8 +218,49 @@ def main(raw_args=None):
     prior_dict = set_lognormal_priors(list(model_info["nominal_params"].keys()), 
                                   free_params, model_info["nominal_params"], 
                                   model_info['prior_params'])
+
+    # create copies of prior dict for LKB1 KO and CaMKK2 KO
+    prior_dict_LKB1_KO = prior_dict.copy()
+    for param in prior_dict_LKB1_KO.keys():
+        tmp = prior_dict_LKB1_KO[param].split('",')
+        tmp[0] = tmp[0] + '_LKB1_KO'
+        prior_dict_LKB1_KO[param] = '",'.join(tmp)
     
-    pm_model = build_pymc_model(model_info['params'], prior_dict, data, sol_op, data_sigma=data_std)
+    # LKB1 KO params (zeroed out in the LKB1kd condition)
+    if 'MA' in args.model:
+        LKB1_KO_params = ['kOnLKB1','kPhosLKB1']
+    elif 'MM' in args.model:
+         LKB1_KO_params = ['LKB1tot']
+
+    # we will build a custom PM model that does not use the build_pymc_model func
+    pm_model = pm.Model()
+    with pm_model:
+        # loop over free params and construct the priors
+        priors_WT = {}
+        for param in model_info['params']:
+            # create PyMC variables for each parameters in the model
+            prior = eval(prior_dict[param])
+            priors_WT[param] = prior
+
+        priors_LKB1_KO = {}
+        for param in model_info['params']:
+            # create PyMC variables for each parameters in the model
+            prior = eval(prior_dict_LKB1_KO[param])
+            priors_LKB1_KO[param] = prior
+
+        # predict response WT
+        WT = pm.Deterministic('WT',
+                                      sol_op(*[priors_WT[param] for param in model_info['params']]))
+
+        # induce LKB1 KO by changing the parameters to the LKB1 KO values
+        LKB1_KO = pm.Deterministic('LKB1_KO',
+                        sol_op(*[priors_LKB1_KO[param] if param not in LKB1_KO_params \
+                                 else 0.0 for param in model_info['params']]))
+
+        # assume a normal model for the data
+        llike_WT = pm.Normal("llike_WT", mu=WT, sigma=data_std, observed=data)
+        llike_LKB1_KO = pm.Normal("llike_LKB1_KO", mu=LKB1_KO,
+                                  sigma=data_std_LKB1_KO, observed=data_LKB1_KO)
 
     ###################################################
     # prior sampling #
@@ -238,15 +293,13 @@ def main(raw_args=None):
                 posterior = sample_numpyro_nuts(draws=args.nsamples, tune=args.nwarmup, 
                                 jitter=False, chains=args.nchains, 
                                 random_seed=args.seed, chain_method=args.chain_method_numpyro, 
-                                progressbar=True, idata_kwargs={'log_likelihood': True})
+                                progressbar=True, idata_kwargs={'log_likelihood': True}, )
         elif args.sampler == "ADVI":
             with pm_model:
                 mean_field = pm.fit(n=args.n_advi_iter, method='advi', 
                                 callbacks=[CheckParametersConvergence(diff='absolute', tolerance=1e-3)], 
                                 obj_optimizer=pm.adam)
                 
-                
-
             # make convergence plot
             fig, ax = plt.subplots()
             ax.plot(mean_field.hist)
@@ -256,6 +309,23 @@ def main(raw_args=None):
 
             # sample from the mean field approximation
             posterior = mean_field.sample(draws=args.nsamples)
+        elif args.sampler == "Pathfinder":
+            with pm_model:
+                # set initvals to nominal params for stable starting point
+                initvals_WT = {priors_WT[p].name: model_info['nominal_params'][p]
+                               for p in free_params}
+                initvals_LKB1 = {priors_LKB1_KO[p].name: model_info['nominal_params'][p]
+                                 for p in free_params}
+                initvals = {**initvals_WT, **initvals_LKB1}
+
+                posterior = pmx.fit(method='pathfinder',
+                                    jitter=2.0,
+                                    maxiter=args.maxiter_pathfinder,
+                                    num_paths=args.nchains,
+                                    num_draws=args.nsamples,
+                                    random_seed=args.seed,
+                                    inference_backend='pymc',
+                                    initvals=initvals)
         elif args.sampler == "Nutpie":
             nutpie_compiled_model = nutpie.compile_pymc_model(pm_model)
             posterior = nutpie.sample(nutpie_compiled_model, draws=args.nsamples, 
