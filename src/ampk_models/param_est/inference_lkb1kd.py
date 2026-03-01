@@ -75,6 +75,7 @@ def parse_args(raw_args=None):
     parser.add_argument("-maxiter_pathfinder", type=int, default=300, help="Max L-BFGS iterations for Pathfinder. Defaults to 300.")
     parser.add_argument("-num_paths_pathfinder", type=int, default=8, help="Number of independent Pathfinder paths. More paths = better coverage. Defaults to 8.")
     parser.add_argument("-jitter_pathfinder", type=float, default=1.0, help="Jitter for Pathfinder initial points. Defaults to 1.0.")
+    parser.add_argument("-pathfinder_concurrent", type=str, default=None, help="Parallelism for Pathfinder paths: 'thread' or 'process'. Defaults to None (serial).")
 
     
     args=parser.parse_args(raw_args)
@@ -340,7 +341,8 @@ def main(raw_args=None):
                                     num_draws=args.nsamples,
                                     num_draws_per_path=args.nsamples,
                                     random_seed=args.seed,
-                                    initvals=initvals)
+                                    initvals=initvals,
+                                    concurrent=args.pathfinder_concurrent)
         elif args.sampler == "Nutpie":
             nutpie_compiled_model = nutpie.compile_pymc_model(pm_model)
             posterior = nutpie.sample(nutpie_compiled_model, draws=args.nsamples,
@@ -372,6 +374,16 @@ def main(raw_args=None):
         if args.sample_prior:
             posterior.extend(prior_pred)
         posterior.extend(post_pred)
+
+        # Rename variables containing '/' which NetCDF doesn't allow
+        for group_name in list(posterior._groups):
+            group = getattr(posterior, group_name, None)
+            if group is None:
+                continue
+            bad_names = [v for v in group.data_vars if '/' in v]
+            if bad_names:
+                rename_map = {v: v.replace('/', '_') for v in bad_names}
+                setattr(posterior, group_name, group.rename(rename_map))
 
         # save as netcdf file
         posterior.to_netcdf(os.path.join(args.savedir, args.model + '_' + \
