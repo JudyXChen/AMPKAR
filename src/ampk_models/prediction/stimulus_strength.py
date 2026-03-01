@@ -30,7 +30,7 @@ model = "MA_nonessential"
 model_info_file = '../models/MA_nonessential.json'
 
 data_dir = '../../../results/param_est/'
-save_dir_base = '../../../results/param_est/stimulus_strength/'
+save_dir_base = '../../../results/stimulus_strength/'
 
 save_dir = save_dir_base + model + '/'
 if not os.path.exists(save_dir):

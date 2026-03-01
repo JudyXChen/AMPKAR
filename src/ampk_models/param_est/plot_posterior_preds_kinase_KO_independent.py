@@ -22,7 +22,7 @@ jax.config.update("jax_enable_x64", True)
 
 mpl.rcParams['figure.autolayout'] = True
 
-samplers = ["Pathfinder"] #,"ADVI", "Nutpie", "NUTS"]
+samplers = ["Pathfinder", "ADVI"] #, "Nutpie", "NUTS"]
 n_trajectories = 10
 
 wt_color = sns.color_palette("colorblind")[0]
@@ -95,8 +95,8 @@ for sampler in samplers:
             ax.set_xlim(0, None)
 
             fig.tight_layout()
-            plt.savefig(save_dir + f'{cond}_{llike}_ppc_' + sampler + '.pdf', transparent=True, bbox_inches='tight')
-            plt.savefig(save_dir + f'{cond}_{llike}_ppc_' + sampler + '.png', dpi=300, bbox_inches='tight')
+            plt.savefig(save_dir + f'{cond}_ppc_{sampler}.pdf', transparent=True, bbox_inches='tight')
+            plt.savefig(save_dir + f'{cond}_ppc_{sampler}.png', dpi=300, bbox_inches='tight')
             plt.close(fig)
             print(f"Saved {cond} posterior predictive plot.")
         else:
@@ -134,9 +134,9 @@ for sampler in samplers:
             ax.set_xlim(0, None)
 
             fig.tight_layout()
-            plt.savefig(save_dir + f'{cond}_{det}_posterior_{sampler}.pdf',
+            plt.savefig(save_dir + f'{cond}_posterior_{sampler}.pdf',
                         transparent=True, bbox_inches='tight')
-            plt.savefig(save_dir + f'{cond}_{det}_posterior_{sampler}.png',
+            plt.savefig(save_dir + f'{cond}_posterior_{sampler}.png',
                         dpi=300, bbox_inches='tight')
             plt.close(fig)
             print(f"Saved {cond} model posterior plot.")
