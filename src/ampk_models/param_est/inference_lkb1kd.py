@@ -76,7 +76,9 @@ def parse_args(raw_args=None):
     parser.add_argument("--compute_llike", action='store_true', help="Flag to resample the posterior predictive using previous param samples.")
     parser.add_argument("-n_advi_iter", type=int, default=1000, help="Number of iterations for ADVI. Defaults to 1000.")
     parser.add_argument("-data_std_max", type=float, default=1.0, help="Scaling factor to change WT data std.")
-    parser.add_argument("-maxiter_pathfinder", type=int, default=1000, help="Max L-BFGS iterations for Pathfinder. Defaults to 1000.")
+    parser.add_argument("-maxiter_pathfinder", type=int, default=300, help="Max L-BFGS iterations for Pathfinder. Defaults to 300.")
+    parser.add_argument("-num_paths_pathfinder", type=int, default=8, help="Number of independent Pathfinder paths. More paths = better coverage. Defaults to 8.")
+    parser.add_argument("-jitter_pathfinder", type=float, default=1.0, help="Jitter for Pathfinder initial points. Defaults to 1.0.")
 
     
     args=parser.parse_args(raw_args)
@@ -319,10 +321,11 @@ def main(raw_args=None):
                 initvals = {**initvals_WT, **initvals_LKB1}
 
                 posterior = pmx.fit(method='pathfinder',
-                                    jitter=2.0,
+                                    jitter=args.jitter_pathfinder,
                                     maxiter=args.maxiter_pathfinder,
-                                    num_paths=args.nchains,
+                                    num_paths=args.num_paths_pathfinder,
                                     num_draws=args.nsamples,
+                                    num_draws_per_path=args.nsamples,
                                     random_seed=args.seed,
                                     inference_backend='pymc',
                                     initvals=initvals)
