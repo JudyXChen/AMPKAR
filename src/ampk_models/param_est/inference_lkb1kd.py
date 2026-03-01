@@ -297,9 +297,30 @@ def main(raw_args=None):
                                 obj_optimizer=pm.adam,
                                 start=initvals)
 
-            # make convergence plot
+            # make convergence plot with smoothed ELBO and convergence check
+            elbo_hist = np.array(mean_field.hist)
+            window = min(50, len(elbo_hist) // 5) if len(elbo_hist) > 10 else 1
+            elbo_smoothed = pd.Series(elbo_hist).rolling(window, min_periods=1).mean().values
+
             fig, ax = plt.subplots()
-            ax.plot(mean_field.hist)
+            ax.plot(elbo_hist, alpha=0.3, label='Raw ELBO')
+            ax.plot(elbo_smoothed, color='C0', linewidth=2, label=f'Smoothed (window={window})')
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('-ELBO')
+            ax.legend()
+
+            # convergence check: relative change in smoothed ELBO over last 10% of iterations
+            tail_n = max(len(elbo_smoothed) // 10, 2)
+            tail = elbo_smoothed[-tail_n:]
+            rel_change = np.abs((tail[-1] - tail[0]) / (np.abs(tail[0]) + 1e-10))
+            converged = rel_change < 0.01
+            status = f'Converged (rel_change={rel_change:.4f})' if converged \
+                else f'NOT converged (rel_change={rel_change:.4f})'
+            ax.set_title(status)
+            print(f'ADVI convergence: {status}')
+            if not converged:
+                print(f'  Consider increasing -n_advi_iter (currently {args.n_advi_iter})')
+
             fig.savefig(args.savedir + args.model + '_' + \
                                     args.compartment + '_advi_converg.png', dpi=300)
             plt.close()
