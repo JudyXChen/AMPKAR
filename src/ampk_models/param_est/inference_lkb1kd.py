@@ -1,7 +1,3 @@
-import multiprocessing
-if multiprocessing.get_start_method() != 'spawn':
-    multiprocessing.set_start_method('spawn', force=True)
-
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -57,7 +53,7 @@ def parse_args(raw_args=None):
     parser.add_argument("-nwarmup", type=int, default=1000, help="Number of MCMC tuning samples. Defaults to 1000.")
     parser.add_argument("-nsamples", type=int, default=1000, help="Number of posterior samples to draw per MCMC chain. Defaults to 1000.")
     parser.add_argument("-nchains", type=int, default=1, help="Number of chains to run. Defaults to 1.")
-    parser.add_argument("-sampler", type=str, default='NUTS', help="Name of the MCMC sampler to use ['NUTS', 'NUTS-ADVI', 'NumpyroNUTS', 'Nutpie']. Defaults to 'NUTS'")
+    parser.add_argument("-sampler", type=str, default='NUTS', help="Name of the MCMC sampler to use ['NUTS', 'NUTS-ADVI', 'NumpyroNUTS', 'Nutpie', 'ADVI', 'Pathfinder', 'DEMetropolisZ', 'SMC']. Defaults to 'NUTS'")
     parser.add_argument("-chain_method_numpyro", type=str, default='vectorized', help="Method to use for running chains in NumpyroNUTS. Defaults to 'vectorized'.")
     parser.add_argument("-ncores_nutpie", type=int, default=1, help="Number of cores to use for Nutpie. Defaults to 1 in which case sampling is sequential over the chains. If ncores > 1 then sampling is parallel over the chains.")
     # simulation parameters
@@ -149,16 +145,17 @@ def main(raw_args=None):
     # load the data
     # converts from min to seconds
     # WT
-    data, data_std, times = load_data(args.data_file, to_seconds=True, 
-                                      constant_std=False)
+    data, data_std, times = load_data(args.data_file, to_seconds=True,
+                                      constant_std=False, exclude_zero_std=True)
     data = data.reshape(1, len(data))
     scale = args.data_std_max/np.max(data_std)
     data_std = data_std.reshape(1, len(data_std))*scale
-    
+
     # LKB1 KO
     data_LKB1_KO, data_std_LKB1_KO, _ = load_data(args.LKB1_KO_data_file,
-                                                  to_seconds=True, 
-                                                  constant_std=False)
+                                                  to_seconds=True,
+                                                  constant_std=False,
+                                                  exclude_zero_std=True)
     data_LKB1_KO = data_LKB1_KO.reshape(1, len(data_LKB1_KO))
     scale_lkb1 = args.data_std_max/np.max(data_std_LKB1_KO)
     data_std_LKB1_KO = data_std_LKB1_KO.reshape(1, len(data_std_LKB1_KO))*scale_lkb1
@@ -193,7 +190,7 @@ def main(raw_args=None):
 
     vjp_sol_op_jax_jitted = eqx.filter_jit(vjp_sol_op_jax)
 
-    if args.sampler in ['NUTS', 'NUTS-ADVI', 'Nutpie', 'ADVI','Pathfinder']:
+    if args.sampler in ['NUTS', 'NUTS-ADVI', 'Nutpie', 'ADVI', 'Pathfinder']:
         # if using Pymc or Nutpie samplers, then we need the Pytensor op for the grads
         vjp_sol_op = VJPSolOp(vjp_sol_op_jax_jitted)
         sol_op = SolOp(sol_op_jax_jitted, vjp_sol_op)
@@ -213,50 +210,44 @@ def main(raw_args=None):
         @jax_funcify.register(SolOp_noGrad)
         def sol_op_jax_funcify(op, **kwargs):
             return sol_op_jax
+    elif args.sampler in ['DEMetropolisZ', 'SMC']:
+        # gradient-free samplers: no VJP needed
+        sol_op = SolOp_noGrad(sol_op_jax_jitted)
+
+        @jax_funcify.register(SolOp_noGrad)
+        def sol_op_jax_funcify(op, **kwargs):
+            return sol_op_jax
 
     ####################################################
     # PyMC model #
     ####################################################
-    prior_dict = set_lognormal_priors(list(model_info["nominal_params"].keys()), 
-                                  free_params, model_info["nominal_params"], 
+    prior_dict = set_lognormal_priors(list(model_info["nominal_params"].keys()),
+                                  free_params, model_info["nominal_params"],
                                   model_info['prior_params'])
 
-    # create copies of prior dict for LKB1 KO and CaMKK2 KO
-    prior_dict_LKB1_KO = prior_dict.copy()
-    for param in prior_dict_LKB1_KO.keys():
-        tmp = prior_dict_LKB1_KO[param].split('",')
-        tmp[0] = tmp[0] + '_LKB1_KO'
-        prior_dict_LKB1_KO[param] = '",'.join(tmp)
-    
     # LKB1 KO params (zeroed out in the LKB1kd condition)
     if 'MA' in args.model:
         LKB1_KO_params = ['kOnLKB1','kPhosLKB1']
     elif 'MM' in args.model:
          LKB1_KO_params = ['LKB1tot']
 
-    # we will build a custom PM model that does not use the build_pymc_model func
+    # Build model with SHARED parameters between WT and LKB1 KO conditions.
+    # The only difference is that LKB1_KO_params are zeroed in the KO condition.
     pm_model = pm.Model()
     with pm_model:
-        # loop over free params and construct the priors
-        priors_WT = {}
+        # Create a single set of priors shared across both conditions
+        priors = {}
         for param in model_info['params']:
-            # create PyMC variables for each parameters in the model
             prior = eval(prior_dict[param])
-            priors_WT[param] = prior
+            priors[param] = prior
 
-        priors_LKB1_KO = {}
-        for param in model_info['params']:
-            # create PyMC variables for each parameters in the model
-            prior = eval(prior_dict_LKB1_KO[param])
-            priors_LKB1_KO[param] = prior
-
-        # predict response WT
+        # predict response WT (uses all shared parameters)
         WT = pm.Deterministic('WT',
-                                      sol_op(*[priors_WT[param] for param in model_info['params']]))
+                              sol_op(*[priors[param] for param in model_info['params']]))
 
-        # induce LKB1 KO by changing the parameters to the LKB1 KO values
+        # LKB1 KO: same shared parameters but with LKB1-specific params zeroed
         LKB1_KO = pm.Deterministic('LKB1_KO',
-                        sol_op(*[priors_LKB1_KO[param] if param not in LKB1_KO_params \
+                        sol_op(*[priors[param] if param not in LKB1_KO_params
                                  else 0.0 for param in model_info['params']]))
 
         # assume a normal model for the data
@@ -297,11 +288,15 @@ def main(raw_args=None):
                                 random_seed=args.seed, chain_method=args.chain_method_numpyro, 
                                 progressbar=True, idata_kwargs={'log_likelihood': True}, )
         elif args.sampler == "ADVI":
+            # Set initial values to prior medians (exp(mu)) for consistency with priors
+            initvals = {priors[p].name: np.exp(model_info['prior_params'][p]['mu'])
+                        for p in free_params}
             with pm_model:
-                mean_field = pm.fit(n=args.n_advi_iter, method='advi', 
-                                callbacks=[CheckParametersConvergence(diff='absolute', tolerance=1e-3)], 
-                                obj_optimizer=pm.adam)
-                
+                mean_field = pm.fit(n=args.n_advi_iter, method='advi',
+                                callbacks=[CheckParametersConvergence(diff='absolute', tolerance=1e-3)],
+                                obj_optimizer=pm.adam,
+                                start=initvals)
+
             # make convergence plot
             fig, ax = plt.subplots()
             ax.plot(mean_field.hist)
@@ -313,12 +308,9 @@ def main(raw_args=None):
             posterior = mean_field.sample(draws=args.nsamples)
         elif args.sampler == "Pathfinder":
             with pm_model:
-                # set initvals to nominal params for stable starting point
-                initvals_WT = {priors_WT[p].name: model_info['nominal_params'][p]
-                               for p in free_params}
-                initvals_LKB1 = {priors_LKB1_KO[p].name: model_info['nominal_params'][p]
-                                 for p in free_params}
-                initvals = {**initvals_WT, **initvals_LKB1}
+                # set initvals to prior medians (exp(mu)) — shared params only
+                initvals = {priors[p].name: np.exp(model_info['prior_params'][p]['mu'])
+                            for p in free_params}
 
                 posterior = pmx.fit(method='pathfinder',
                                     jitter=args.jitter_pathfinder,
@@ -327,13 +319,25 @@ def main(raw_args=None):
                                     num_draws=args.nsamples,
                                     num_draws_per_path=args.nsamples,
                                     random_seed=args.seed,
-                                    inference_backend='pymc',
                                     initvals=initvals)
         elif args.sampler == "Nutpie":
             nutpie_compiled_model = nutpie.compile_pymc_model(pm_model)
-            posterior = nutpie.sample(nutpie_compiled_model, draws=args.nsamples, 
-                                      tune=args.nwarmup, chains=args.nchains, 
+            posterior = nutpie.sample(nutpie_compiled_model, draws=args.nsamples,
+                                      tune=args.nwarmup, chains=args.nchains,
                                       cores=args.ncores_nutpie, seed=args.seed)
+        elif args.sampler == "DEMetropolisZ":
+            with pm_model:
+                posterior = pm.sample(args.nsamples, tune=args.nwarmup,
+                                      step=pm.DEMetropolisZ(),
+                                      chains=args.nchains, cores=1,
+                                      random_seed=args.seed,
+                                      idata_kwargs={'log_likelihood': True})
+        elif args.sampler == "SMC":
+            with pm_model:
+                posterior = pm.sample_smc(draws=args.nsamples,
+                                          chains=args.nchains,
+                                          cores=1,
+                                          random_seed=args.seed)
             
         ####################################################
         # posterior predictive sampling #

@@ -155,24 +155,26 @@ def main(raw_args=None):
     # load the data
     # converts from min to seconds
     # WT
-    data, data_std, times = load_data(args.data_file, to_seconds=True, 
-                                      constant_std=False)
+    data, data_std, times = load_data(args.data_file, to_seconds=True,
+                                      constant_std=False, exclude_zero_std=True)
     data = data.reshape(1, len(data))
     scale = args.data_std_max/np.max(data_std)
     data_std = data_std.reshape(1, len(data_std))*scale
-    
+
     # LKB1 KO
     data_LKB1_KO, data_std_LKB1_KO, _ = load_data(args.LKB1_KO_data_file,
-                                                  to_seconds=True, 
-                                                  constant_std=False)
+                                                  to_seconds=True,
+                                                  constant_std=False,
+                                                  exclude_zero_std=True)
     data_LKB1_KO = data_LKB1_KO.reshape(1, len(data_LKB1_KO))
     scale_lkb1 = args.data_std_max/np.max(data_std_LKB1_KO)
     data_std_LKB1_KO = data_std_LKB1_KO.reshape(1, len(data_std_LKB1_KO))*scale_lkb1
 
     # CaMKK2 KO
-    data_CaMKK2_KO, data_std_CaMKK2_KO, _ = load_data(args.CaMKK2_KO_data_file, 
-                                                      to_seconds=True, 
-                                                      constant_std=False)
+    data_CaMKK2_KO, data_std_CaMKK2_KO, _ = load_data(args.CaMKK2_KO_data_file,
+                                                      to_seconds=True,
+                                                      constant_std=False,
+                                                      exclude_zero_std=True)
     data_CaMKK2_KO = data_CaMKK2_KO.reshape(1, len(data_CaMKK2_KO))
     scale_camkk2 = args.data_std_max/np.max(data_std_CaMKK2_KO)
     data_std_CaMKK2_KO = data_std_CaMKK2_KO.reshape(1, len(data_std_CaMKK2_KO))*scale_camkk2

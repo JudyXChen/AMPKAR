@@ -64,8 +64,14 @@ def get_color_pallette(n_colors=11, append_colors=['#363737','#929591','#d8dcd6'
     colors = sns.color_palette("colorblind", n_colors, desat=0.65)
     return colors + append_colors
 
-def load_data(data_file, to_seconds=False, constant_std=False):
+def load_data(data_file, to_seconds=False, constant_std=False, exclude_zero_std=False):
     """ Loads the data from the specified file.
+
+    Parameters
+    ----------
+    exclude_zero_std : bool
+        If True, exclude data points where std == 0 (e.g. the t=0 normalization
+        reference point). This prevents logp = -inf in the Normal likelihood.
     """
     data = np.load(data_file) # read data npz file
 
@@ -85,6 +91,14 @@ def load_data(data_file, to_seconds=False, constant_std=False):
         std_data = data['std_constant']*np.ones_like(mean_data)
     else:
         std_data = data['std'][zero_idx:]
+
+    # Exclude data points with zero std (e.g. the t=0 normalization reference)
+    # These cause logp = -inf in the Normal likelihood since log(1/0) = -inf
+    if exclude_zero_std:
+        valid = std_data > 0
+        mean_data = mean_data[valid]
+        std_data = std_data[valid]
+        times = times[valid]
 
     return mean_data, std_data, times
 
@@ -182,26 +196,26 @@ def solve_traj(rhs, rhs_stress, y0, params, times, rtol=1e-6, atol=1e-6,
     t0 = 0.0
     t1 = times[-1]
     saveat=dfrx.SaveAt(ts=times)
-    max_steps=int(3e7)
+    max_steps=int(1e6)
 
     # first solve the basal model to SS
     sol = dfrx.diffeqsolve(
-        rhs, solver, 
-        t0, tmax_init, dt0, y0, 
+        rhs, solver,
+        t0, tmax_init, dt0, y0,
         args=params,
         stepsize_controller=stepsize_controller,
         event=event,
-        max_steps=max_steps, throw=True)
-    
+        max_steps=max_steps, throw=False)
+
     # then use that solution as the initial condition for the stressed setting
     sol_stressed = dfrx.diffeqsolve(
-        rhs_stress, solver, 
-        t0, t1, dt0, 
+        rhs_stress, solver,
+        t0, t1, dt0,
         sol.ys, # use basal SS at IC
         args=params, saveat=saveat,
         stepsize_controller=stepsize_controller,
-        max_steps=max_steps, throw=True)
-    
+        max_steps=max_steps, throw=False)
+
     return jnp.squeeze(jnp.array(sol_stressed.ys)), jnp.squeeze(jnp.array(sol.ys))
 
 @jax.jit
