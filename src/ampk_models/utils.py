@@ -526,15 +526,14 @@ def plot_predictive(inf_data, data, times, plot_prior=True, plot_post=True,
             'y': prior_sims.flatten()
         })
         # Add rows with time 0 and y 0 for each draw
-        zero_time_rows = prior_sims_df.groupby(['chain', 'draw']).apply(lambda x: pd.DataFrame({
-            'chain': [x['chain'].iloc[0]],
-            'draw': [x['draw'].iloc[0]],
-            'time': [0],
-            'y': [0]
-        })).reset_index(drop=True)
-        prior_sims_df = pd.concat([prior_sims_df, zero_time_rows], 
-                                    ignore_index=True).sort_values(by=['chain', 
-                                    'draw', 'time']).reset_index(drop=True)
+        if add_t_0:
+            zero_rows = []
+            for (c, d) in prior_sims_df.groupby(['chain', 'draw']).groups.keys():
+                zero_rows.append({'chain': c, 'draw': d, 'time': 0, 'y': 0})
+            zero_time_rows = pd.DataFrame(zero_rows)
+            prior_sims_df = pd.concat([prior_sims_df, zero_time_rows],
+                                        ignore_index=True).sort_values(by=['chain',
+                                        'draw', 'time']).reset_index(drop=True)
     
     if plot_post:
         # convert posterior predictive into a dataframe
@@ -553,15 +552,14 @@ def plot_predictive(inf_data, data, times, plot_prior=True, plot_post=True,
             'y': post_sims.flatten()
         })
         # Add rows with time 0 and y 0 for each draw
-        zero_time_rows = post_sims_df.groupby(['chain', 'draw']).apply(lambda x: pd.DataFrame({
-            'chain': [x['chain'].iloc[0]],
-            'draw': [x['draw'].iloc[0]],
-            'time': [0],
-            'y': [0]
-        })).reset_index(drop=True)
-        post_sims_df = pd.concat([post_sims_df, zero_time_rows], 
-                                    ignore_index=True).sort_values(by=['chain', 
-                                'draw', 'time']).reset_index(drop=True)
+        if add_t_0:
+            zero_rows = []
+            for (c, d) in post_sims_df.groupby(['chain', 'draw']).groups.keys():
+                zero_rows.append({'chain': c, 'draw': d, 'time': 0, 'y': 0})
+            zero_time_rows = pd.DataFrame(zero_rows)
+            post_sims_df = pd.concat([post_sims_df, zero_time_rows],
+                                        ignore_index=True).sort_values(by=['chain',
+                                    'draw', 'time']).reset_index(drop=True)
 
     # plot predictive checks
     if fig_ax[0] is not None and fig_ax[1] is not None:
@@ -598,8 +596,8 @@ def plot_predictive(inf_data, data, times, plot_prior=True, plot_post=True,
                     label='Posterior predictive', linewidth=2.0, linestyle=linestyle)
     
     # plot data
-    ax.scatter(times, data, color=data_color, s=data_marker_size, 
-               label='Data', marker='x', linewidth=1.0)
+    ax.plot(times, data, color=data_color, linestyle='--', linewidth=1.5,
+            label='Data', zorder=5)
 
     # label formatting
     ax.set_xlabel('')
@@ -611,20 +609,20 @@ def plot_predictive(inf_data, data, times, plot_prior=True, plot_post=True,
     ax.set_xlim(0, ax.get_xlim()[1])
     ax.set_ylim(0, ax.get_ylim()[1])
     
-    leg = ax.legend(fontsize=8, bbox_to_anchor=(1.05, 1), loc='upper left')
-
-    # Add shaded region to the legend item for the line on a seaborn lineplot
-    handles, labels = ax.get_legend_handles_labels()
-    print(handles)
-    for i, label in enumerate(labels):
-        if label == 'Posterior predictive':
-            # handles[i] = Patch(facecolor=post_color, edgecolor='none', alpha=0.3)
-            handles[i] = (handles[i], Patch(facecolor=post_color, edgecolor='none', alpha=0.3))
-        elif label == 'Prior':
-            handles[i] = Patch(facecolor=prior_color, edgecolor='none', alpha=0.3)
-        elif label == 'Data':
-            handles[i] = handles[i]
-    leg  = ax.legend(handles=handles, labels=labels, fontsize=8, bbox_to_anchor=(1.05, 1), loc='upper left')
+    # Build legend handles manually
+    custom_handles = []
+    custom_labels = []
+    if plot_prior:
+        custom_handles.append(Patch(facecolor=prior_color, edgecolor='none', alpha=0.3))
+        custom_labels.append('Prior')
+    if plot_post:
+        line_handle = mpl.lines.Line2D([], [], color=post_color, linewidth=2.0, linestyle=linestyle)
+        custom_handles.append((line_handle, Patch(facecolor=post_color, edgecolor='none', alpha=0.3)))
+        custom_labels.append('Posterior predictive')
+    custom_handles.append(mpl.lines.Line2D([], [], color=data_color, linestyle='--', linewidth=1.5))
+    custom_labels.append('Data')
+    leg = ax.legend(handles=custom_handles, labels=custom_labels, fontsize=8,
+                    bbox_to_anchor=(1.05, 1), loc='upper left')
 
     return fig, ax, leg
 
