@@ -292,6 +292,71 @@ def solve_SS(rhs, rhs_stress, y0, params, rtol=1e-6, atol=1e-6,
     
     return jnp.squeeze(jnp.array(sol_stressed.ys)), jnp.squeeze(jnp.array(sol.ys))
 
+###############################################################################
+#### Time-dependent kGly utilities ####
+
+def pulse_input(t, t_start, t_end, amplitude, baseline):
+    """Pulse kGly(t): drops to baseline + amplitude during [t_start, t_end].
+
+    Args:
+        t: time (seconds)
+        t_start: pulse start time (seconds)
+        t_end: pulse end time (seconds)
+        amplitude: change in kGly during pulse (negative = glycolysis inhibition)
+        baseline: basal kGly value outside the pulse
+
+    Example:
+        pulse_fn = lambda t: pulse_input(t, 5*60, 10*60, amplitude=-0.45, baseline=0.5)
+    """
+    return jnp.where((t >= t_start) & (t <= t_end), baseline + amplitude, baseline)
+
+def square_input(t, period, duty_cycle=0.5, amplitude=-0.45, baseline=0.5):
+    """Periodic square wave kGly(t).
+
+    Args:
+        t: time (seconds)
+        period: period of the square wave (seconds)
+        duty_cycle: fraction of period spent at baseline + amplitude (0 to 1)
+        amplitude: change in kGly during active phase (negative = inhibition)
+        baseline: kGly value during inactive phase
+
+    Example:
+        square_fn = lambda t: square_input(t, period=4*60, duty_cycle=0.5,
+                                           amplitude=-0.45, baseline=0.5)
+    """
+    phase = jnp.mod(t, period) / period
+    return jnp.where(phase < duty_cycle, baseline + amplitude, baseline)
+
+def make_time_dep_kGly(model, kGly_func):
+    """Wrap an ODE model to use time-dependent kGly(t).
+
+    Creates a new ODE RHS function where self.kGly is replaced at each timestep
+    by kGly_func(t). The returned function has the same signature as model.__call__
+    and can be passed to diffrax.ODETerm().
+
+    Args:
+        model: an Equinox ODE module (e.g., MA_nonessential instance)
+        kGly_func: callable t -> kGly value (must use jnp ops for JIT compatibility)
+
+    Returns:
+        callable(t, y, args) suitable for diffrax.ODETerm()
+
+    Example:
+        model_basal = MA_nonessential(*basal_params)
+        rhs_basal = dfrx.ODETerm(model_basal)
+
+        pulse_fn = lambda t: pulse_input(t, 5*60, 10*60, amplitude=-0.45, baseline=0.5)
+        rhs_stress = dfrx.ODETerm(make_time_dep_kGly(model_basal, pulse_fn))
+
+        sol, ss = solve_traj(rhs_basal, rhs_stress, y0, params, times, ...)
+    """
+    def ode_rhs(t, y, args):
+        updated = eqx.tree_at(lambda m: m.kGly, model, kGly_func(t))
+        return updated(t, y, args)
+    return ode_rhs
+
+###############################################################################
+
 def run_simulations(param_samples, model_name, model_info_file, metab_params_file, times, rtol=1e-6,atol=1e-6,pcoeff=0,icoeff=1,dcoeff=0,tmax_init=1e3, y0=None):
     """ Run simulations for the specified model and return the results.
     """
