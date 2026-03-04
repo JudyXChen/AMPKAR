@@ -1,0 +1,3 @@
+model,sampler,condition,elpd_loo,se,p_loo
+MA_nonessential,Pathfinder,WT,56.26827925796361,3.7793486729011425,4.424798479416054
+MA_nonessential,Pathfinder,LKB1_KO,58.40629588593762,5.9421763729139245,5.0937967645239155
