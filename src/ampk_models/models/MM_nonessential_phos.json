@@ -8,12 +8,13 @@
         "kOffATP",
         "kCaMKK",
         "KmCaMKK",
+        "betaCaMKK",
         "kLKB1",
         "KmLKB1",
-        "alphaLKB1",
+        "betaLKB1",
         "kPP",
         "KmPP",
-        "alphaPP",
+        "betaPP",
         "kAMPK",
         "KmAMPK",
         "betaAMP",
@@ -33,12 +34,13 @@
         "kOffATP": 0.018,
         "kCaMKK": 0.00081,
         "KmCaMKK": 0.015,
+        "betaCaMKK": 1.0,
         "kLKB1": 0.00392,
         "KmLKB1": 1.4,
-        "alphaLKB1": 1.0,
+        "betaLKB1": 1.0,
         "kPP": 0.00011,
         "KmPP": 0.67,
-        "alphaPP": 1.0,
+        "betaPP": 1.0,
         "kAMPK": 1.92e-05,
         "KmAMPK": 0.0849,
         "betaAMP": 1.0,
@@ -58,12 +60,13 @@
         "kOffATP": 0.018,
         "kCaMKK": 0.00081,
         "KmCaMKK": 0.015,
+        "betaCaMKK": 1.0,
         "kLKB1": 0.00392,
         "KmLKB1": 1.4,
-        "alphaLKB1": 1.0,
+        "betaLKB1": 1.0,
         "kPP": 0.00011,
         "KmPP": 0.67,
-        "alphaPP": 1.0,
+        "betaPP": 1.0,
         "kAMPK": 0.00192,
         "KmAMPK": 0.00849,
         "betaAMP": 1.0,
@@ -121,6 +124,10 @@
             5.03e-05,
             1.502
         ],
+        "betaCaMKK": [
+            1.0,
+            100.0
+        ],
         "kLKB1": [
             3.92e-06,
             0.392
@@ -129,9 +136,9 @@
             0.00139992,
             1396.392
         ],
-        "alphaLKB1": [
-            0.0001,
-            1.0
+        "betaLKB1": [
+            1.0,
+            100.0
         ],
         "kPP": [
             1.1e-06,
@@ -141,9 +148,9 @@
             6.7e-06,
             5.71
         ],
-        "alphaPP": [
-            1.0,
-            100.0
+        "betaPP": [
+            0.01,
+            1.0
         ],
         "kAMPK": [
             0.00633,
@@ -194,6 +201,10 @@
             "mu": 0,
             "sigma": 1
         },
+        "betaCaMKK": {
+            "mu": 2,
+            "sigma": 1
+        },
         "kLKB1": {
             "mu": -3,
             "sigma": 1
@@ -202,9 +213,9 @@
             "mu": 5,
             "sigma": 1
         },
-        "alphaLKB1": {
-            "mu": 0,
-            "sigma": 3
+        "betaLKB1": {
+            "mu": 2,
+            "sigma": 1
         },
         "kPP": {
             "mu": -2,
@@ -214,9 +225,9 @@
             "mu": 1,
             "sigma": 3
         },
-        "alphaPP": {
-            "mu": 1.5,
-            "sigma": 1.5
+        "betaPP": {
+            "mu": -1,
+            "sigma": 1
         },
         "kAMPK": {},
         "KmAMPK": {},
@@ -255,6 +266,10 @@
             0.02608998,
             5.18694787
         ],
+        "betaCaMKK": [
+            0.19278256,
+            38.32665105
+        ],
         "kLKB1": [
             0.00129573,
             0.25823964
@@ -263,9 +278,9 @@
             3.87211061,
             769.81133417
         ],
-        "alphaLKB1": [
-            0.0,
-            139.01203009
+        "betaLKB1": [
+            0.19278256,
+            38.32665105
         ],
         "kPP": [
             0.00352722,
@@ -275,9 +290,9 @@
             0.0,
             377.87387533
         ],
-        "alphaPP": [
-            0.0042209,
-            52.84192868
+        "betaPP": [
+            0.00959803,
+            1.90817155
         ],
         "kAMPK": [],
         "KmAMPK": [],

@@ -53,7 +53,7 @@ def parse_args(raw_args=None):
     parser.add_argument("-nwarmup", type=int, default=1000, help="Number of MCMC tuning samples. Defaults to 1000.")
     parser.add_argument("-nsamples", type=int, default=1000, help="Number of posterior samples to draw per MCMC chain. Defaults to 1000.")
     parser.add_argument("-nchains", type=int, default=1, help="Number of chains to run. Defaults to 1.")
-    parser.add_argument("-sampler", type=str, default='NUTS', help="Name of the MCMC sampler to use ['NUTS', 'NUTS-ADVI', 'NumpyroNUTS', 'Nutpie', 'ADVI', 'Pathfinder', 'DEMetropolisZ', 'SMC']. Defaults to 'NUTS'")
+    parser.add_argument("-sampler", type=str, default='NUTS', help="Name of the MCMC sampler to use ['NUTS', 'NUTS-ADVI', 'NumpyroNUTS', 'Nutpie', 'Pathfinder']. Defaults to 'NUTS'")
     parser.add_argument("-chain_method_numpyro", type=str, default='vectorized', help="Method to use for running chains in NumpyroNUTS. Defaults to 'vectorized'.")
     parser.add_argument("-ncores_nutpie", type=int, default=1, help="Number of cores to use for Nutpie. Defaults to 1 in which case sampling is sequential over the chains. If ncores > 1 then sampling is parallel over the chains.")
     # simulation parameters
@@ -126,6 +126,13 @@ def main(raw_args=None):
 
     basal_params = list(metab_params["metab_params_basal"].values())
     stress_params = list(metab_params["metab_params_stress"].values())
+
+    # if there are addtional stim params add them here
+    if 'Ca_stim_param' in model_info.keys():
+        for param in model_info['Ca_stim_param'].keys():
+            basal_params.append(model_info['Ca_stim_param'][param]['basal']) # basal value
+            stress_params.append(model_info['Ca_stim_param'][param]['stress']) # stressed value
+        
     ###############################################
     #                   Model RHS                  #
     ################################################
@@ -211,13 +218,6 @@ def main(raw_args=None):
         @jax_funcify.register(SolOp_noGrad)
         def sol_op_jax_funcify(op, **kwargs):
             return sol_op_jax
-    elif args.sampler in ['DEMetropolisZ', 'SMC']:
-        # gradient-free samplers: no VJP needed
-        sol_op = SolOp_noGrad(sol_op_jax_jitted)
-
-        @jax_funcify.register(SolOp_noGrad)
-        def sol_op_jax_funcify(op, **kwargs):
-            return sol_op_jax
 
     ####################################################
     # PyMC model #
@@ -226,7 +226,7 @@ def main(raw_args=None):
                                   free_params, model_info["nominal_params"],
                                   model_info['prior_params'])
 
-    # LKB1 KO params (zeroed out in the LKB1kd condition)
+    # LKB1 KO params
     if 'MA' in args.model:
         LKB1_KO_params = ['kOnLKB1','kPhosLKB1']
     elif 'MM' in args.model:
@@ -239,10 +239,11 @@ def main(raw_args=None):
         # Create a single set of priors shared across both conditions
         priors = {}
         for param in model_info['params']:
+            # create PyMC variables for each parameters in the model
             prior = eval(prior_dict[param])
             priors[param] = prior
 
-        # predict response WT (uses all shared parameters)
+        # predict response WT
         WT = pm.Deterministic('WT',
                               sol_op(*[priors[param] for param in model_info['params']]))
 
@@ -330,7 +331,7 @@ def main(raw_args=None):
             posterior = mean_field.sample(draws=args.nsamples)
         elif args.sampler == "Pathfinder":
             with pm_model:
-                # set initvals to prior medians (exp(mu)) — shared params only
+                # set initvals to prior medians (exp(mu))
                 initvals = {priors[p].name: np.exp(model_info['prior_params'][p]['mu'])
                             for p in free_params}
 
@@ -348,19 +349,6 @@ def main(raw_args=None):
             posterior = nutpie.sample(nutpie_compiled_model, draws=args.nsamples,
                                       tune=args.nwarmup, chains=args.nchains,
                                       cores=args.ncores_nutpie, seed=args.seed)
-        elif args.sampler == "DEMetropolisZ":
-            with pm_model:
-                posterior = pm.sample(args.nsamples, tune=args.nwarmup,
-                                      step=pm.DEMetropolisZ(),
-                                      chains=args.nchains, cores=1,
-                                      random_seed=args.seed,
-                                      idata_kwargs={'log_likelihood': True})
-        elif args.sampler == "SMC":
-            with pm_model:
-                posterior = pm.sample_smc(draws=args.nsamples,
-                                          chains=args.nchains,
-                                          cores=1,
-                                          random_seed=args.seed)
             
         ####################################################
         # posterior predictive sampling #

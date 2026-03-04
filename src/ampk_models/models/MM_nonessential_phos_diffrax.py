@@ -1,32 +1,22 @@
 """
-    Nathaniel Linden (UCSD MAE)
-    Created: April 24th, 2023
+    Model 6 — MM nonessential with beta parameterization on catalytic rates (Vmax/kcat).
 
-    This file contains the functions for a model of MAPK activation. That model makes the 
-    following high-level assumptions:
-        - allow double adenine nucleotide AMPK binding
-        - use only mass action kinetics
-        - the reaction mechanism reflects specific activation and inhibition of
-            AMPK and phos/dephos by AXPs
+    AMP/ADP modulate phosphorylation/dephosphorylation rates (betaLKB1 > 1,
+    betaCaMKK > 1, betaPP < 1) instead of Michaelis constants (alphaLKB1,
+    alphaPP in Model 4).
 
-    The get_params functions returns a dictionary of the parameters in the correct
-    format.
-
-    The get_states function returns a dictionary od the parameters in the correct
-    format.
-
-    The RHS function is written following the syntax specified for the pymc/sunode
-    package. See docs here https://sunode.readthedocs.io/en/latest/without_pymc.html
+    Based on MM_nonessential_diffrax.py (Model 4) with beta modifications
+    mirroring MA_nonessential_phos_diffrax.py (Model 5).
 """
 import jax.numpy as jnp
 import equinox as eqx
 import numpyro
 import numpyro.distributions as dist
 
-class MM_nonessential(eqx.Module):
-    """Right hand side of the AMPK_ma_double_mech regulation model.
+class MM_nonessential_phos(eqx.Module):
+    """Right hand side of the AMPK MM nonessential phos (beta) regulation model.
 
-    Written in the format required by the diffrax package
+    Written in the format required by the diffrax package.
     """
 
     # fixed metabolism parameters
@@ -51,36 +41,37 @@ class MM_nonessential(eqx.Module):
 
 
     def __call__(self, t, y, args):
-        """Right hand side of the AMPK_ma_single_mech regulation model.
+        """Right hand side of the AMPK MM nonessential phos (beta) regulation model.
 
-        Written in the format required by the diffrax package
+        Written in the format required by the diffrax package.
         """
 
-        # unpack parameters
-        kOnAMP      = args[0] # AMP binding
+        # unpack parameters (24 total)
+        kOnAMP      = args[0]  # AMP binding
         kOffAMP     = args[1]
-        kOnADP      = args[2] # ADP binding
+        kOnADP      = args[2]  # ADP binding
         kOffADP     = args[3]
-        kOnATP      = args[4] # ATP binding
+        kOnATP      = args[4]  # ATP binding
         kOffATP     = args[5]
-        kPhosCaMKK  = args[6] # CaMKK
+        kPhosCaMKK  = args[6]  # CaMKK
         KmCaMKK     = args[7]
-        kPhosLKB1   = args[8] # LKB1 binding
-        KmLKB1      = args[9]
-        alphaLKB1   = args[10] # < 1; binding enhancement factor due to AMP/ADP
-        kDephosPP   = args[11] # AMPK Phosphatase
-        KmPP        = args[12]
-        alphaPP     = args[13] # > 1; binding reduction factor due to AMP/ADP
-        kPhosAMPK   = args[14] # AMPK kinase
-        KmAMPK      = args[15]
-        betaAMP     = args[16] # > 1 phos enhancement factor due to AMP allo act
-        kDephosPP1  = args[17] # pAMPKAR Phosphatase
-        KmPP1       = args[18] 
+        betaCaMKK   = args[8]  # > 1; AMP/ADP increase CaMKK phosphorylation rate
+        kPhosLKB1   = args[9]  # LKB1
+        KmLKB1      = args[10]
+        betaLKB1    = args[11] # > 1; AMP/ADP increase LKB1 phosphorylation rate
+        kDephosPP   = args[12] # AMPK Phosphatase
+        KmPP        = args[13]
+        betaPP      = args[14] # < 1; AMP/ADP decrease PP dephosphorylation rate
+        kPhosAMPK   = args[15] # AMPK kinase
+        KmAMPK      = args[16]
+        betaAMP     = args[17] # > 1 phos enhancement factor due to AMP allo act
+        kDephosPP1  = args[18] # pAMPKAR Phosphatase
+        KmPP1       = args[19]
         # external enzyme concentrations
-        CaMKKtot    = args[19]
-        LKB1tot     = args[20]
-        PPtot       = args[21]
-        PP1tot      = args[22]
+        CaMKKtot    = args[20]
+        LKB1tot     = args[21]
+        PPtot       = args[22]
+        PP1tot      = args[23]
 
         # unpack states
         AMP                 = y[0]
@@ -97,7 +88,7 @@ class MM_nonessential(eqx.Module):
         ATP_pAMPK           = y[11]
         AMPKAR              = y[12]
         pAMPKAR             = y[13]
-        
+
         # FLUXES
         J1 = (kOnAMP*AMP**3*AMPK-kOffAMP*AMP_AMPK)
         J2 = (kOnADP*ADP*AMPK-kOffADP*ADP_AMPK)
@@ -105,19 +96,19 @@ class MM_nonessential(eqx.Module):
         J4 = (kOnAMP*AMP**3*pAMPK-kOffAMP*AMP_pAMPK)
         J5 = (kOnADP*ADP*pAMPK-kOffADP*ADP_pAMPK)
         J6 = (kOnATP*ATP*pAMPK-kOffATP*ATP_pAMPK)
-        # CaMKK phosphorylation
+        # CaMKK phosphorylation — unbound: no beta; AMP/ADP-bound: beta on numerator
         J7 = ((kPhosCaMKK*CaMKKtot*AMPK)/(KmCaMKK + AMPK))
-        J8 = ((kPhosCaMKK*CaMKKtot*AMP_AMPK)/(KmCaMKK + AMP_AMPK))
-        J9 = ((kPhosCaMKK*CaMKKtot*ADP_AMPK)/(KmCaMKK + ADP_AMPK))
+        J8 = ((betaCaMKK*kPhosCaMKK*CaMKKtot*AMP_AMPK)/(KmCaMKK + AMP_AMPK))
+        J9 = ((betaCaMKK*kPhosCaMKK*CaMKKtot*ADP_AMPK)/(KmCaMKK + ADP_AMPK))
         J10 = ((kPhosCaMKK*CaMKKtot*ATP_AMPK)/(KmCaMKK + ATP_AMPK))
-        # LKB1 phosphorylation
+        # LKB1 phosphorylation — beta on numerator (replaces alpha on Km denominator)
         J11 = ((kPhosLKB1*LKB1tot*AMPK)/(KmLKB1 + AMPK))
-        J12 = ((kPhosLKB1*LKB1tot*AMP_AMPK)/(alphaLKB1*KmLKB1 + AMP_AMPK))
-        J13 = ((kPhosLKB1*LKB1tot*ADP_AMPK)/(alphaLKB1*KmLKB1 + ADP_AMPK))
-        # PP dephos
+        J12 = ((betaLKB1*kPhosLKB1*LKB1tot*AMP_AMPK)/(KmLKB1 + AMP_AMPK))
+        J13 = ((betaLKB1*kPhosLKB1*LKB1tot*ADP_AMPK)/(KmLKB1 + ADP_AMPK))
+        # PP dephos — beta on numerator (replaces alpha on Km denominator)
         J14 = ((kDephosPP*PPtot*pAMPK)/(KmPP + pAMPK))
-        J15 = ((kDephosPP*PPtot*AMP_pAMPK)/(alphaPP*KmPP + AMP_pAMPK))
-        J16 = ((kDephosPP*PPtot*ADP_pAMPK)/(alphaPP*KmPP + ADP_pAMPK))
+        J15 = ((betaPP*kDephosPP*PPtot*AMP_pAMPK)/(KmPP + AMP_pAMPK))
+        J16 = ((betaPP*kDephosPP*PPtot*ADP_pAMPK)/(KmPP + ADP_pAMPK))
         J17 = ((kDephosPP*PPtot*ATP_pAMPK)/(KmPP + ATP_pAMPK))
         # AMPKAR phos
         J18 = (kPhosAMPK*pAMPK*AMPKAR)/(KmAMPK + AMPKAR)
@@ -134,11 +125,11 @@ class MM_nonessential(eqx.Module):
         # Adenylate Kinase
         # written as (VforAK*ATP)/(kmt*kmm) in cocci, but units dont make sense
         num_for = (self.VforAK*ATP*AMP)/(self.kmt*self.kmm)
-        den_ak = (1 + (ATP/self.kmt) + (AMP/self.kmm) + ((ATP*AMP)/(self.kmt*self.kmm)) + 
+        den_ak = (1 + (ATP/self.kmt) + (AMP/self.kmm) + ((ATP*AMP)/(self.kmt*self.kmm)) +
                     ((2*ADP)/self.kmd) + ((ADP**2)/(self.kmd**2)))
         VrevAK = (self.VforAK*(self.kmd**2))/(self.KeqAK*self.kmt*self.kmm)
         num_rev = (VrevAK*(ADP**2))/(self.kmd**2)
-        JAK = (num_for - num_rev)/den_ak # ADP forming direction 
+        JAK = (num_for - num_rev)/den_ak # ADP forming direction
         # Oxidative Phos
         Joxphos = (self.VmaxOxPhos * ((ADP/self.Kadp)**self.n))/(1 + ((ADP/self.Kadp)**self.n))
         # Creatine kinase
@@ -162,10 +153,10 @@ class MM_nonessential(eqx.Module):
         d_ADP_pAMPK = J5+J9+J13-J16
         d_ATP_pAMPK = J6+J10-J17
         d_AMPKAR = -J18-J19-J20+J21
-        d_pAMPKAR = J18+J19+J20-J21 
+        d_pAMPKAR = J18+J19+J20-J21
 
-        return [d_AMP, d_ADP, d_ATP, d_PCr, d_AMPK, d_pAMPK, d_AMP_AMPK, 
-                d_ADP_AMPK, d_ATP_AMPK, d_AMP_pAMPK, d_ADP_pAMPK, d_ATP_pAMPK, 
+        return [d_AMP, d_ADP, d_ATP, d_PCr, d_AMPK, d_pAMPK, d_AMP_AMPK,
+                d_ADP_AMPK, d_ATP_AMPK, d_AMP_pAMPK, d_ADP_pAMPK, d_ATP_pAMPK,
                 d_AMPKAR, d_pAMPKAR]
 
 

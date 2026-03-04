@@ -1,0 +1,61 @@
+Module,Name,Reaction,Forward rate,Reverse rate,Note
+Metabolism,OxPhos,ADP → ATP,J_oxphos,,Hill-type
+Metabolism,Glycolysis,ADP → ATP,J_gly,,
+Metabolism,ATP hydrolysis,ATP → ADP,J_hydro,,
+Metabolism,Adenylate kinase,ATP + AMP ⇌ 2 ADP,"J_AK,f","J_AK,r",bi-bi reaction
+Metabolism,Creatine kinase,ADP + PCr ⇌ ATP + Cr,"J_CK,f","J_CK,r",Cleland bi-bi reaction
+Adenine nucleotide,AMP binding,3AMP + AMPK ⇌ 3AMP–AMPK,"k_on,AMP·[AMP]^3[AMPK]","k_off,AMP·[3AMP–AMPK]",
+Adenine nucleotide,ADP binding,3ADP + AMPK ⇌ 3ADP–AMPK,"k_on,ADP·[ADP]^3[AMPK]","k_off,ADP·[3ADP–AMPK]",
+Adenine nucleotide,ATP binding,ATP + AMPK ⇌ ATP–AMPK,"k_on,ATP·[ATP][AMPK]","k_off,ATP·[ATP–AMPK]",
+Adenine nucleotide,AMP binding,AMP + pAMPK ⇌ AMP–pAMPK,"k_on,AMP·[AMP][pAMPK]","k_off,AMP·[AMP–pAMPK]",
+Adenine nucleotide,ADP binding,ADP + pAMPK ⇌ ADP–pAMPK,"k_on,ADP·[ADP][pAMPK]","k_off,ADP·[ADP–pAMPK]",
+Adenine nucleotide,ATP binding,ATP + pAMPK ⇌ ATP–pAMPK,"k_on,ATP·[ATP][pAMPK]","k_off,ATP·[ATP–pAMPK]",
+Adenine nucleotide,AMP binding,AMP + CaMKK2*–AMPK ⇌ CaMKK2*–AMP–AMPK,"k_on,AMP·[AMP][CaMKK2*–AMPK]","k_off,AMP·[CaMKK2*–AMP–AMPK]",
+Adenine nucleotide,ADP binding,ADP + CAMKK2*–AMPK ⇌ CAMKK2*–ADP–AMPK,"k_on,ADP·[ADP][CAMKK2*–AMPK]","k_off,ADP·[CAMKK2*–ADP–AMPK]",
+Adenine nucleotide,ATP binding,ATP + CAMKK2*–AMPK ⇌ CAMKK2*–ATP–AMPK,"k_on,ATP·[ATP][CAMKK2*–AMPK]","k_off,ATP·[CAMKK2*–ATP–AMPK]",
+Adenine nucleotide,AMP binding,AMP + LKB1–AMPK ⇌ LKB1–AMP–AMPK,"k_on,AMP·[AMP][LKB1–AMPK]","k_off,AMP·[LKB1–AMP–AMPK]",
+Adenine nucleotide,ADP binding,ADP + LKB1–AMPK ⇌ LKB1–ADP–AMPK,"k_on,ADP·[ADP][LKB1–AMPK]","k_off,ADP·[LKB1–ADP–AMPK]",
+Adenine nucleotide,ATP binding,ATP + LKB1–AMPK ⇌ LKB1–ATP–AMPK,"k_on,ATP·[ATP][LKB1–AMPK]","k_off,ATP·[LKB1–ATP–AMPK]",
+Adenine nucleotide,AMP binding,AMP + PP–pAMPK ⇌ PP–AMP–pAMPK,"k_on,AMP·[AMP][PP–pAMPK]","k_off,AMP·[PP–AMP–pAMPK]",
+Adenine nucleotide,ADP binding,ADP + PP–pAMPK ⇌ PP–ADP–pAMPK,"k_on,ADP·[ADP][PP–pAMPK]","k_off,ADP·[PP–ADP–pAMPK]",
+Adenine nucleotide,ATP binding,ATP + PP–pAMPK ⇌ PP–ATP–pAMPK,"k_on,ATP·[ATP][PP–pAMPK]","k_off,ATP·[PP–ATP–pAMPK]",
+Adenine nucleotide,AMP binding,AMP + AMPKAR–pAMPK ⇌ AMPKAR–AMP–pAMPK,"k_on,AMP·[AMP][AMPKAR–pAMPK]","k_off,AMP·[AMPKAR–AMP–pAMPK]",
+Adenine nucleotide,ADP binding,ADP + AMPKAR–pAMPK ⇌ AMPKAR–ADP–pAMPK,"k_on,ADP·[ADP][AMPKAR–pAMPK]","k_off,ADP·[AMPKAR–ADP–pAMPK]",
+Adenine nucleotide,ATP binding,ATP + AMPKAR–pAMPK ⇌ AMPKAR–ATP–pAMPK,"k_on,ATP·[ATP][AMPKAR–pAMPK]","k_off,ATP·[AMPKAR–ATP–pAMPK]",
+LKB1,Binding,AMPK + LKB1 ⇌ LKB1–AMPK,"k_on,LKB1·[LKB1][reactant]","k_off,LKB1·[complex]",
+LKB1,Phosphorylation,LKB1–AMPK → LKB1 + pAMPK,"k_phos,LKB1·[complex]",,
+LKB1,Binding,AMP–AMPK + LKB1 ⇌ LKB1–AMP–AMPK,"k_on,LKB1·[LKB1][reactant]","k_off,LKB1·[complex]",
+LKB1,Phosphorylation,LKB1–AMP–AMPK → LKB1 + AMP–pAMPK,"β_LKB1·k_phos,LKB1·[complex]",,AMP increase LKB1 phosphorylation rate by β_LKB1 > 1
+LKB1,Binding,ADP–AMPK + LKB1 ⇌ LKB1–ADP–AMPK,"k_on,LKB1·[LKB1][reactant]","k_off,LKB1·[complex]",
+LKB1,Phosphorylation,LKB1–ADP–AMPK → LKB1 + ADP–pAMPK,"β_LKB1·k_phos,LKB1·[complex]",,ADP increase LKB1 phosphorylation rate by β_LKB1 > 1
+LKB1,Binding,ATP–AMPK + LKB1 ⇌ LKB1–ATP–AMPK,"k_on,LKB1·[LKB1][reactant]","k_off,LKB1·[complex]",
+LKB1,Phosphorylation,LKB1–ATP–AMPK → LKB1 + ATP–pAMPK,"k_phos,LKB1·[complex]",,
+CaMKK2,Calcium-calmodulim,4Ca²⁺ + CaM ⇌ CaCaM,"k_on,CaM·[Ca]^3[CaM]","k_off,CaM·[CaCaM]",
+CaMKK2,Activation,CaMKK2 → CAMKK2*,J_CAMKK2-act,,Hill-type
+CaMKK2,Deactivation,CAMKK2* → CaMKK2,"k_dephos,CaMKK2·[CAMKK2*]",,
+CaMKK2,Binding,AMPK + CaMKK2* ⇌ CaMKK2*–AMPK,"k_on,CaMKK2·[CAMKK2*][reactant]","k_off,CaMKK2·[complex]",
+CaMKK2,Phosphorylation,CAMKK2*–AMPK → CAMKK2* + pAMPK,"k_phos,CaMKK2·[complex]",,
+CaMKK2,Binding,AMP–AMPK + CAMKK2* ⇌ CAMKK2*–AMP–AMPK,"k_on,CaMKK2·[CAMKK2*][reactant]","k_off,CaMKK2·[complex]",
+CaMKK2,Phosphorylation,CAMKK2*–AMP–AMPK → CAMKK2* + AMP–pAMPK,"β_CAMKK2·k_phos,CaMKK2·[complex]",,AMP increase CAMKK2 phosphorylation rate by β_CAMKK2 > 1
+CaMKK2,Binding,ADP–AMPK + CAMKK2* ⇌ CAMKK2*–ADP–AMPK,"k_on,CaMKK2·[CAMKK2*][reactant]","k_off,CaMKK2·[complex]",
+CaMKK2,Phosphorylation,CAMKK2*–ADP–AMPK → CAMKK2* + ADP–pAMPK,"β_CAMKK2·k_phos,CaMKK2·[complex]",,ADP increase CAMKK2 phosphorylation rate by β_CAMKK2 > 1
+CaMKK2,Binding,ATP–AMPK + CAMKK2* ⇌ CAMKK2*–ATP–AMPK,"k_on,CaMKK2·[CAMKK2*][reactant]","k_off,CaMKK2·[complex]",
+CaMKK2,Phosphorylation,CAMKK2*–ATP–AMPK → CAMKK2* + ATP–pAMPK,"k_phos,CaMKK2·[complex]",,
+Phosphatase,Binding,pAMPK + PP ⇌ PP–pAMPK,"k_on,PP·[PP][reactant]","k_off,PP·[complex]",
+Phosphatase,Dephosphorylation,PP–pAMPK → PP + AMPK,"k_dephos,PP·[complex]",,
+Phosphatase,Binding,AMP–pAMPK + PP ⇌ PP–AMP–pAMPK,"k_on,PP·[PP][reactant]","k_off,PP·[complex]",
+Phosphatase,Dephosphorylation,PP–AMP–pAMPK → PP + AMP–AMPK,"β_PP·k_dephos,PP·[complex]",,AMP reduce dephosphorylation rate by β_PP < 1
+Phosphatase,Binding,ADP–pAMPK + PP ⇌ PP–ADP–pAMPK,"k_on,PP·[PP][reactant]","k_off,PP·[complex]",
+Phosphatase,Dephosphorylation,PP–ADP–pAMPK → PP + ADP–AMPK,"β_PP·k_dephos,PP·[complex]",,ADP reduce dephosphorylation rate by β_PP < 1
+Phosphatase,Binding,ATP–pAMPK + PP ⇌ PP–ATP–pAMPK,"k_on,PP·[PP][reactant]","k_off,PP·[complex]",
+Phosphatase,Dephosphorylation,PP–ATP–pAMPK → PP + ATP–AMPK,"k_dephos,PP·[complex]",,
+AMPKAR,Binding,AMPKAR + pAMPK ⇌ AMPKAR–pAMPK,"k_on,AMPKAR·[AMPKAR][reactant]","k_off,AMPKAR·[complex]",
+AMPKAR,Reporter phosphorylation,AMPKAR–pAMPK → pAMPKAR + pAMPK,"k_phos,AMPKAR·[complex]",,
+AMPKAR,Binding,AMPKAR + AMP–pAMPK ⇌ AMPKAR–AMP–pAMPK,"k_on,AMPKAR·[AMPKAR][reactant]","k_off,AMPKAR·[complex]",
+AMPKAR,Reporter phosphorylation,AMPKAR–AMP–pAMPK → pAMPKAR + AMP–pAMPK,"β_AMP·k_phos,AMPKAR·[complex]",,AMP increase activity by β_AMP > 1 (nonessential activator)
+AMPKAR,Binding,AMPKAR + ADP–pAMPK ⇌ AMPKAR–ADP–pAMPK,"k_on,AMPKAR·[AMPKAR][reactant]","k_off,AMPKAR·[complex]",
+AMPKAR,Reporter phosphorylation,AMPKAR–ADP–pAMPK → pAMPKAR + ADP–pAMPK,"k_phos,AMPKAR·[complex]",,
+AMPKAR,Binding,AMPKAR + ATP–pAMPK ⇌ AMPKAR–ATP–pAMPK,"k_on,AMPKAR·[AMPKAR][reactant]","k_off,AMPKAR·[complex]",
+AMPKAR,Reporter phosphorylation,AMPKAR–ATP–pAMPK → pAMPKAR + ATP–pAMPK,"k_phos,AMPKAR·[complex]",,
+AMPKAR,PPase Binding,pAMPKAR + PP1 ⇌ PP1–pAMPKAR,"k_on,PP1·[PP1][reactant]","k_off,PP1·[complex]",
+AMPKAR,PPase Dephosphorylation,PP1–pAMPKAR → PP1 + AMPKAR,"k_dephos,PP1·[complex]",,
