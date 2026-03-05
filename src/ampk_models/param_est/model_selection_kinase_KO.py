@@ -27,21 +27,20 @@ sampler_colors = {
     # "Nutpie": sns.color_palette("colorblind")[3],
 }
 
-# Models to compare (add more here later)
+# Models to compare
 models = {
     "MA_nonessential": {
         'info_file': '../models/MA_nonessential.json',
-        'label': 'MA nonessential',
+        'label': r'MA $\alpha$',
     },
-    # Add more models here, e.g.:
-    # "MA_single": {
-    #     'info_file': '../models/MA_single.json',
-    #     'label': 'MA single',
-    # },
-    # "MM_nonessential": {
-    #     'info_file': '../models/MM_nonessential.json',
-    #     'label': 'MM nonessential',
-    # },
+    "MA_nonessential_phos": {
+        'info_file': '../models/MA_nonessential_phos.json',
+        'label': r'MA $\beta$',
+    },
+    "MM_nonessential_phos": {
+        'info_file': '../models/MM_nonessential_phos.json',
+        'label': r'MM $\beta$',
+    },
 }
 
 # Conditions and their data files
@@ -59,7 +58,7 @@ conditions = {
 }
 
 data_dir = '../../../results/param_est/'
-save_dir = '../../../results/param_est/figs/MA_nonessential/'
+save_dir = '../../../results/param_est/figs/model_comparison/'
 data_std_max = 0.1  # must match what was used in inference
 
 if not os.path.exists(save_dir):
@@ -141,6 +140,7 @@ for cond, cond_info in conditions.items():
 
             elpd_results.append({
                 'model': model_name,
+                'model_label': models[model_name]['label'],
                 'sampler': sampler,
                 'condition': cond,
                 'elpd_loo': elpd,
@@ -165,7 +165,7 @@ for cond, cond_info in conditions.items():
     compare_dict = {}
     for (model_name, sampler), idata in idata_dict.items():
         if llike_name in idata.log_likelihood:
-            label = f"{model_name} ({sampler})"
+            label = models[model_name]['label']
             compare_dict[label] = idata
 
     if len(compare_dict) >= 2:
@@ -184,9 +184,9 @@ if len(elpd_df) > 0:
 
         fig, ax = plt.subplots(figsize=(max(3, len(cond_df) * 1.2), 3))
 
-        x_labels = [f"{row['model']}\n({row['sampler']})" for _, row in cond_df.iterrows()]
+        x_labels = [row['model_label'] for _, row in cond_df.iterrows()]
         x_pos = np.arange(len(cond_df))
-        colors_list = [sampler_colors.get(row['sampler'], '0.5') for _, row in cond_df.iterrows()]
+        colors_list = [sns.color_palette("colorblind")[i] for i in range(len(cond_df))]
 
         bars = ax.bar(x_pos, cond_df['elpd_loo'].values, yerr=cond_df['se'].values,
                        capsize=4, color=colors_list, edgecolor='black', linewidth=0.8, alpha=0.8)
@@ -205,16 +205,16 @@ if len(elpd_df) > 0:
         print(f"Saved ELPD plot for {cond}")
 
     ############ Plot: Combined ELPD (averaged over conditions) ############
-    avg_elpd = elpd_df.groupby(['model', 'sampler']).agg(
+    avg_elpd = elpd_df.groupby(['model', 'model_label', 'sampler']).agg(
         avg_elpd=('elpd_loo', 'mean'),
         avg_se=('se', 'mean')
     ).reset_index()
 
     fig, ax = plt.subplots(figsize=(max(3, len(avg_elpd) * 1.2), 3))
 
-    x_labels = [f"{row['model']}\n({row['sampler']})" for _, row in avg_elpd.iterrows()]
+    x_labels = [row['model_label'] for _, row in avg_elpd.iterrows()]
     x_pos = np.arange(len(avg_elpd))
-    colors_list = [sampler_colors.get(row['sampler'], '0.5') for _, row in avg_elpd.iterrows()]
+    colors_list = [sns.color_palette("colorblind")[i] for i in range(len(avg_elpd))]
 
     bars = ax.bar(x_pos, avg_elpd['avg_elpd'].values, yerr=avg_elpd['avg_se'].values,
                    capsize=4, color=colors_list, edgecolor='black', linewidth=0.8, alpha=0.8)
