@@ -87,18 +87,20 @@ Model 6 (MM beta) priors:
 
 ---
 
-## 5. Inference & Model Selection (Models 3–6)
+## 5. Inference & Model Selection (Models 3–6) [RUNNING]
 
-**Status:** Shell scripts ready for all four models (3–6).
+**Status:** Running on remote server via `inference_run_all.sh` (all 4 models sequentially).
 
-Run Pathfinder inference for all four model variants using `inference_lkb1kd.py` with joint WT + LKB1 KD data:
+Run Pathfinder inference for all four model variants using `inference_lkb1kd.py` with joint WT + LKB1 KD data (260307 dataset):
 
 | Model | Kinetics | Modulation mechanism | Shell script | Status |
 |-------|----------|---------------------|--------|--------|
-| 3 — MA alpha | Mass-action | alpha on Kd (dissociation rates) | `inference_run_MA_nonessential.sh` | Ready |
-| 4 — MM alpha | Michaelis-Menten | alpha on Km | `inference_run_MM_nonessential.sh` | Ready |
-| 5 — MA beta | Mass-action | beta on kcat (catalytic rates) | `inference_run_MA_nonessential_phos.sh` | Ready |
-| 6 — MM beta | Michaelis-Menten | beta on Vmax | `inference_run_MM_nonessential_phos.sh` | Ready |
+| 3 — MA alpha | Mass-action | alpha on Kd (dissociation rates) | `inference_run_all.sh` | Running |
+| 4 — MM alpha | Michaelis-Menten | alpha on Km | `inference_run_all.sh` | Running |
+| 5 — MA beta | Mass-action | beta on kcat (catalytic rates) | `inference_run_all.sh` | Running |
+| 6 — MM beta | Michaelis-Menten | beta on Vmax | `inference_run_all.sh` | Running |
+
+All 4 models now include ATP-AMPK fluxes (LKB1 phosphorylation of ATP-AMPK, AMPKAR phosphorylation by ATP-pAMPK) that were previously missing.
 
 **Comparison:** Use ELPD (LOO cross-validation) via `model_selection_kinase_KO.py` (adapted for 2-condition case). This answers: *Does AMP/ADP enhance AMPK signaling by modifying binding affinity or catalytic rate? And is mass-action or MM the better kinetic framework?*
 
@@ -132,25 +134,36 @@ The cubic AMP binding stoichiometry ([AMP]^3) appears to cause bimodality in pos
 
 ---
 
-## 8. Calcium-CaMKK2 Module
+## 8. Calcium-CaMKK2 Module [IN PROGRESS]
 
-**Status:** Design complete. See `docs/calcium_camkk2_model.md`.
+**Status:** Phase 2 (mechanistic ODEs) implemented for MA beta model. Phase 3 (RCamp calibration) designed. See `docs/calcium_camkk2_plan.md`.
 
-Add a calcium-dependent CaMKK2 activation block using RCamp data as measured input:
+**Approach changed from lumped Hill function to mechanistic ODE cascade** (based on Nate's `dev_CaMKK` branch, with corrections):
 
-$$[\text{CaMKK2}^*](t) = [\text{CaMKK2}]_{\text{tot}} \left[ f_{\text{basal}} + (1 - f_{\text{basal}}) \cdot \frac{\text{Ca}(t)^n}{K_d^n + \text{Ca}(t)^n} \right]$$
+### Phase 2: Mechanistic Calcium Cascade [DONE for MA beta]
 
-Key points:
-- CaMKK2 has ~60–70% autonomous (Ca²⁺-independent) activity
-- Activation is via conformational relief of autoinhibition by Ca₄CaM, NOT phosphorylation
-- Adds 2–3 new parameters: $f_{\text{basal}}$, $K_d$, $n$
-- Requires `diffrax.LinearInterpolation` for RCamp signal in ODE
+Three new reactions:
+1. **4Ca²⁺ + CaM ⇌ Ca₄CaM** — cooperative binding (Ca⁴ mass-action, fast ~ms)
+2. **Ca₄CaM activates CaMKK2** — Hill kinetics (exponent 4, rate-limiting ~seconds)
+3. **CaMKK2 deactivation** — first-order (τ ≈ 20 s)
 
-**Implementation steps:**
-1. Interpolate RCamp as `Ca(t)` via diffrax
-2. Modify ODE modules to accept time-dependent `CaMKK2_active(t)`
-3. Update `solve_traj()` to pass interpolant (basal phase: `Ca = 0`, stressed phase: RCamp data)
-4. Add new priors and include in inference scripts
+4 new ODE states (Ca, CaM, CaCaM, CaMKK_act), 5 new fixed parameters. CaMKK state reinterpreted as inactive pool.
+
+**Files created:**
+- `src/ampk_models/models/MA_phos_CaMKK2_diffrax.py` (39 states, 30 params)
+- `src/ampk_models/models/MA_phos_CaMKK2.json`
+
+**Corrections from Nate's code:** Ca exponent 3→4 (4 EF-hand sites), d_Ca stoichiometry -JCa→-4·JCa, betaCaMKK index collision fixed.
+
+### Phase 3: RCamp-to-Calcium Calibration [DESIGNED]
+
+Key findings from literature review:
+- Ca-CaM binding is fast (~μs–ms), effectively instantaneous at 30s data resolution
+- **AMPK phosphorylation by CaMKK2 still requires Ca²⁺/CaM** even though CaMKK2 has 60–70% autonomous activity against other substrates (Racioppi & Bhalla 2012, JBC)
+- RCamp contains a CaM domain that **competes with endogenous CaM** for Ca²⁺ binding
+- RCamp fluorescence lags actual [Ca²⁺] by ~0.3–1.8 s (conformational isomerization)
+
+Proposed: 3-state RCamp model (RCamp ⇌ CaRCamp ⇌ CaRCamp*), full Ca²⁺ balance with CaM and RCamp competition, joint AMPKAR + RCamp likelihood.
 
 ---
 
@@ -158,13 +171,12 @@ Key points:
 
 **Status:** Not started. Relevant scripts exist for 3-condition case (Linden data) but need adaptation for HeLa 2-condition case.
 
-For joint inference across WT, LKB1 KD, and (future) CaMKK2 KO conditions, compare three parameter-sharing strategies:
+For joint inference across WT, LKB1 KD, and (future) CaMKK2 KO conditions, compare two parameter-sharing strategies:
 
 | Strategy | Description | Degrees of freedom | Script |
 |----------|-------------|-------------------|--------|
 | **Fully shared** | One parameter set for all conditions; KO implemented by zeroing specific params | Low | `inference_lkb1kd.py` |
 | **Partially shared** | Most params shared; specific params (e.g., CaMKK2-related) allowed to differ between conditions | Medium | New script needed |
-| **Fully independent** | Separate parameter set per condition | High | `inference_kinase_KO_independent_pymc.py` |
 
 Compare via ELPD. The partially shared approach is most interesting for testing whether LKB1 KO also affects CaMKK2 activity (a specific biological hypothesis).
 
