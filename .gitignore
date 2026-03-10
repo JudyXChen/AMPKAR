@@ -19,5 +19,8 @@ build/
 .env
 *.env
 
+# Results
+results/
+
 # Notes 
 *.md
