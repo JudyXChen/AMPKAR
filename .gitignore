@@ -26,5 +26,8 @@ results/
 AMPKARkey_data/*.pdf
 AMPKARkey_data/*.png
 
-# Notes 
+# Docs
+docs/
+
+# Notes
 *.md
