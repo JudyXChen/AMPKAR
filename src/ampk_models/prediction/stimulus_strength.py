@@ -63,7 +63,7 @@ stress_params = list(metab_params["metab_params_stress"].values())
 idata = az.from_netcdf(data_dir + model + '_Iono_mcmc_samples_' + sampler + '.nc')
 
 # load data to get simulation time
-_, _, times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_RCamp_Iono.npz',
+_, _, times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
                         to_seconds=True, constant_std=False, exclude_zero_std=True)
 
 rtol = 1e-6

@@ -123,6 +123,10 @@ class MM_nonessential(eqx.Module):
         J18 = (kPhosAMPK*pAMPK*AMPKAR)/(KmAMPK + AMPKAR)
         J19 = (betaAMP*kPhosAMPK*AMP_pAMPK*AMPKAR)/(KmAMPK + AMPKAR)
         J20 = (kPhosAMPK*ADP_pAMPK*AMPKAR)/(KmAMPK + AMPKAR)
+        # LKB1 phosphorylation of ATP-AMPK (no alpha — ATP does not enhance binding)
+        J22 = (kPhosLKB1*LKB1tot*ATP_AMPK)/(KmLKB1 + ATP_AMPK)
+        # AMPKAR phosphorylation by ATP-pAMPK (no beta — ATP does not enhance activity)
+        J23 = (kPhosAMPK*ATP_pAMPK*AMPKAR)/(KmAMPK + AMPKAR)
         # PP1 dephos
         J21 = (kDephosPP1*PP1tot*pAMPKAR)/(KmPP1 + pAMPKAR)
 
@@ -157,12 +161,12 @@ class MM_nonessential(eqx.Module):
         d_pAMPK = -J4-J5-J6+J7+J11-J14
         d_AMP_AMPK = J1-J8-J12+J15
         d_ADP_AMPK = J2-J9-J13+J16
-        d_ATP_AMPK = J3-J10+J17
+        d_ATP_AMPK = J3-J10-J22+J17
         d_AMP_pAMPK = J4+J8+J12-J15
         d_ADP_pAMPK = J5+J9+J13-J16
-        d_ATP_pAMPK = J6+J10-J17
-        d_AMPKAR = -J18-J19-J20+J21
-        d_pAMPKAR = J18+J19+J20-J21 
+        d_ATP_pAMPK = J6+J10+J22-J17
+        d_AMPKAR = -J18-J19-J20-J23+J21
+        d_pAMPKAR = J18+J19+J20+J23-J21
 
         return [d_AMP, d_ADP, d_ATP, d_PCr, d_AMPK, d_pAMPK, d_AMP_AMPK, 
                 d_ADP_AMPK, d_ATP_AMPK, d_AMP_pAMPK, d_ADP_pAMPK, d_ATP_pAMPK, 

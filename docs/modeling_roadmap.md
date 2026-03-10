@@ -104,7 +104,20 @@ Run Pathfinder inference for all four model variants using `inference_lkb1kd.py`
 
 ---
 
-## 6. Stimulus Strength & Frequency Analysis
+## 6. Compare Single-AMP vs [AMP]^3 Binding Posteriors
+
+**Status:** Not started.
+
+The cubic AMP binding stoichiometry ([AMP]^3) appears to cause bimodality in posteriors across most models (kOff,AMP and betaAMP especially). This suggests the [AMP]^3 nonlinearity creates compensatory parameter regimes that the data cannot distinguish.
+
+**What's needed:**
+1. Re-run all 4 models with single AMP binding and compare posterior identifiability (unimodal vs bimodal) and ELPD
+2. Consider a Hill-type binding approach: `kOnAMP * AMP^n * X` with `n` as a fitted parameter (possibly non-integer), which would let the data determine the effective cooperativity
+3. Literature review of how other AMPK models handle multi-site AMP binding (see `docs/amp_binding_literature.md`)
+
+---
+
+## 7. Stimulus Strength & Frequency Analysis
 
 **Status:** Partially explored. Current implementation uses `kGly` reduction as a proxy for metabolic stress.
 
@@ -115,11 +128,11 @@ Run Pathfinder inference for all four model variants using `inference_lkb1kd.py`
 ### What's needed
 - Implement time-dependent `kGly(t)` in the ODE module (pulse, square wave, arbitrary waveform)
 - Clarify biological meaning: stimulus strength = ionomycin dose → glycolysis inhibition magnitude; frequency = repeated transient Ca²⁺ pulses
-- After calcium-CaMKK2 module (item 7) is added, stimulus strength/frequency should also modulate CaMKK2 activation via the RCamp-driven pathway
+- After calcium-CaMKK2 module (item 8) is added, stimulus strength/frequency should also modulate CaMKK2 activation via the RCamp-driven pathway
 
 ---
 
-## 7. Calcium-CaMKK2 Module
+## 8. Calcium-CaMKK2 Module
 
 **Status:** Design complete. See `docs/calcium_camkk2_model.md`.
 
@@ -141,7 +154,7 @@ Key points:
 
 ---
 
-## 8. Kinase KO Inference Strategy
+## 9. Kinase KO Inference Strategy
 
 **Status:** Not started. Relevant scripts exist for 3-condition case (Linden data) but need adaptation for HeLa 2-condition case.
 
@@ -159,7 +172,7 @@ Compare via ELPD. The partially shared approach is most interesting for testing 
 
 ---
 
-## 9. Basal Level Offset
+## 10. Basal Level Offset
 
 **Status:** Conceptual. Requires additional data.
 
@@ -173,7 +186,7 @@ where $a$ is a scaling factor and $b$ is the basal offset. This affine transform
 
 ---
 
-## 10. Experimental Design & Scientific Questions
+## 11. Experimental Design & Scientific Questions
 
 **Status:** Not started.
 

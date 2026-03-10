@@ -33,6 +33,10 @@ models = {
         'info_file': '../models/MA_nonessential.json',
         'label': r'MA $\alpha$',
     },
+    "MM_nonessential": {
+        'info_file': '../models/MM_nonessential.json',
+        'label': r'MM $\alpha$',
+    },
     "MA_nonessential_phos": {
         'info_file': '../models/MA_nonessential_phos.json',
         'label': r'MA $\beta$',
@@ -46,12 +50,12 @@ models = {
 # Conditions and their data files
 conditions = {
     'WT': {
-        'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_RCamp_Iono.npz',
+        'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
         'llike_name': 'llike_WT',
         'det_name': 'WT',
     },
     'LKB1_KO': {
-        'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_LKB1kd_Iono.npz',
+        'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_Iono.npz',
         'llike_name': 'llike_LKB1_KO',
         'det_name': 'LKB1_KO',
     },
@@ -178,9 +182,14 @@ for cond, cond_info in conditions.items():
             print(f"  Compare failed for {cond}: {e}")
 
 ############ Plot: ELPD bar chart per condition ############
+# Enforce model ordering to match dict insertion order (Models 3-6)
+model_order = list(models.keys())
+
 if len(elpd_df) > 0:
     for cond in elpd_df['condition'].unique():
         cond_df = elpd_df[elpd_df['condition'] == cond].copy()
+        cond_df['model'] = pd.Categorical(cond_df['model'], categories=model_order, ordered=True)
+        cond_df = cond_df.sort_values('model')
 
         fig, ax = plt.subplots(figsize=(max(3, len(cond_df) * 1.2), 3))
 
@@ -205,7 +214,7 @@ if len(elpd_df) > 0:
         print(f"Saved ELPD plot for {cond}")
 
     ############ Plot: Combined ELPD (averaged over conditions) ############
-    avg_elpd = elpd_df.groupby(['model', 'model_label', 'sampler']).agg(
+    avg_elpd = elpd_df.groupby(['model', 'model_label', 'sampler'], sort=False).agg(
         avg_elpd=('elpd_loo', 'mean'),
         avg_se=('se', 'mean')
     ).reset_index()

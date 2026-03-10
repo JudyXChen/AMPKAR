@@ -29,7 +29,7 @@ wt_color = sns.color_palette("colorblind")[0]
 lkb1_color = sns.color_palette("colorblind")[1]
 data_color = '0.2'  # dark gray for data points
 
-models = ["MA_nonessential", "MA_nonessential_phos", "MM_nonessential_phos"]
+models = ["MA_nonessential", "MM_nonessential", "MA_nonessential_phos", "MM_nonessential_phos"]
 
 data_dir = '../../../results/param_est/'
 save_dir_base = '../../../results/param_est/figs/'
@@ -41,9 +41,9 @@ fontsize_tick = 8
 fontsize_title = 11
 
 ## Load data (times in minutes for plotting)
-wt_data, _, wt_times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_RCamp_Iono.npz',
+wt_data, _, wt_times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
                                      to_seconds=False, constant_std=False, exclude_zero_std=True)
-lkb1_data, _, lkb1_times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_LKB1kd_Iono.npz',
+lkb1_data, _, lkb1_times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_Iono.npz',
                                      to_seconds=False, constant_std=False, exclude_zero_std=True)
 
 for model in models:

@@ -103,18 +103,20 @@ class MA_nonessential(eqx.Module):
         LKB1_AMPK           = y[18]
         LKB1_AMP_AMPK       = y[19]
         LKB1_ADP_AMPK       = y[20]
-        PP                  = y[21]
-        PP_pAMPK            = y[22]
-        PP_AMP_pAMPK        = y[23]
-        PP_ADP_pAMPK        = y[24]
-        PP_ATP_pAMPK        = y[25]
-        AMPKAR              = y[26]
-        pAMPKAR             = y[27]
-        AMPKAR_pAMPK        = y[28]
-        AMPKAR_AMP_pAMPK    = y[29]
-        AMPKAR_ADP_pAMPK    = y[30]
-        PP1                 = y[31]
-        PP1_pAMPKAR         = y[32]
+        LKB1_ATP_AMPK       = y[21]
+        PP                  = y[22]
+        PP_pAMPK            = y[23]
+        PP_AMP_pAMPK        = y[24]
+        PP_ADP_pAMPK        = y[25]
+        PP_ATP_pAMPK        = y[26]
+        AMPKAR              = y[27]
+        pAMPKAR             = y[28]
+        AMPKAR_pAMPK        = y[29]
+        AMPKAR_AMP_pAMPK    = y[30]
+        AMPKAR_ADP_pAMPK    = y[31]
+        AMPKAR_ATP_pAMPK    = y[32]
+        PP1                 = y[33]
+        PP1_pAMPKAR         = y[34]
 
         # FLUXES
         J1 = kOnAMP*AMP**3*AMPK - kOffAMP*AMP_AMPK
@@ -163,6 +165,14 @@ class MA_nonessential(eqx.Module):
         J44 = kPhosAMPK*AMPKAR_ADP_pAMPK
         J45 = kOnPP1*pAMPKAR*PP1 - kOffPP1*PP1_pAMPKAR
         J46 = kDephosPP1*PP1_pAMPKAR
+        # LKB1 phosphorylation of ATP-AMPK (no alpha — ATP does not enhance binding)
+        J47 = kOnLKB1*LKB1*ATP_AMPK - kOffLKB1*LKB1_ATP_AMPK
+        J48 = kOnATP*ATP*LKB1_AMPK - kOffATP*LKB1_ATP_AMPK
+        J49 = kPhosLKB1*LKB1_ATP_AMPK
+        # AMPKAR phosphorylation by ATP-pAMPK (no beta — ATP does not enhance activity)
+        J50 = kOnAMPK*AMPKAR*ATP_pAMPK - kOffAMPK*AMPKAR_ATP_pAMPK
+        J51 = kOnATP*ATP*AMPKAR_pAMPK - kOffATP*AMPKAR_ATP_pAMPK
+        J52 = kPhosAMPK*AMPKAR_ATP_pAMPK
 
         # Metabolic fluxes
         # glycolysis
@@ -189,39 +199,41 @@ class MA_nonessential(eqx.Module):
         # now return the odes for each state variable
         d_AMP = -3*J1-3*J4-3*J10-3*J21-3*J29-3*J40-JAK
         d_ADP =-J2-J5-J13-J24-J32-J43-Jgly+2*JAK+Jhydro-Joxphos + JCK 
-        d_ATP =-J3-J6-J16-J35+Jgly-JAK-Jhydro+Joxphos - JCK
+        d_ATP =-J3-J6-J16-J35-J48-J51+Jgly-JAK-Jhydro+Joxphos - JCK
         d_PCr = JCK 
         d_AMPK = -J1-J2-J3-J7-J18+J27
         d_pAMPK =  -J4-J5-J6+J8+J19-J26-J37+J38
         d_AMP_AMPK = J1-J9-J20-J28+J30
         d_ADP_AMPK = J2-J12-J23+J33
-        d_ATP_AMPK = J3-J15+J36
+        d_ATP_AMPK = J3-J15-J47+J36
         d_AMP_pAMPK = J4+J11+J22-J39+J41
         d_ADP_pAMPK = J5+J14+J25-J31-J42+J44
-        d_ATP_pAMPK = J6+J17-J34 
+        d_ATP_pAMPK = J6+J17-J34+J49-J50+J52
         d_CaMKK = -J7+J8-J9+J11-J12+J14-J15+J17 
         d_CaMKK_AMPK = J7-J8-J10-J13-J16
         d_CaMKK_AMP_AMPK = J9+J10-J11
         d_CaMKK_ADP_AMPK = J12+J13-J14 
         d_CaMKK_ATP_AMPK = J15+J16-J17 
-        d_LKB1 = -J18+J19-J20+J22-J23+J25
-        d_LKB1_AMPK = J18-J19-J21-J24
-        d_LKB1_AMP_AMPK = J20+J21-J22 
+        d_LKB1 = -J18+J19-J20+J22-J23+J25-J47+J49
+        d_LKB1_AMPK = J18-J19-J21-J24-J48
+        d_LKB1_AMP_AMPK = J20+J21-J22
         d_LKB1_ADP_AMPK = J23+J24-J25
+        d_LKB1_ATP_AMPK = J47+J48-J49
         d_PP = -J26+J27-J28+J30-J31+J33-J34+J36
         d_PP_pAMPK = J26-J27-J29-J32-J35
         d_PP_AMP_pAMPK = J28+J29-J30 
         d_PP_ADP_pAMPK = J31+J32-J33
         d_PP_ATP_pAMPK = J34+J35-J36
-        d_AMPKAR = -J37-J39-J42+J46
-        d_pAMPKAR = J38+J41+J44-J45
-        d_AMPKAR_pAMPK = J37-J38-J40-J43
+        d_AMPKAR = -J37-J39-J42-J50+J46
+        d_pAMPKAR = J38+J41+J44+J52-J45
+        d_AMPKAR_pAMPK = J37-J38-J40-J43-J51
         d_AMPKAR_AMP_pAMPK = J39+J40-J41
         d_AMPKAR_ADP_pAMPK = J42+J43-J44
+        d_AMPKAR_ATP_pAMPK = J50+J51-J52
         d_PP1 = -J45+J46
         d_PP1_pAMPKAR = J45-J46
 
-        return [d_AMP,d_ADP,d_ATP,d_PCr,d_AMPK,d_pAMPK,d_AMP_AMPK,d_ADP_AMPK,d_ATP_AMPK,d_AMP_pAMPK,d_ADP_pAMPK,d_ATP_pAMPK,d_CaMKK,d_CaMKK_AMPK,d_CaMKK_AMP_AMPK,d_CaMKK_ADP_AMPK,d_CaMKK_ATP_AMPK,d_LKB1,d_LKB1_AMPK,d_LKB1_AMP_AMPK,d_LKB1_ADP_AMPK,d_PP,d_PP_pAMPK,d_PP_AMP_pAMPK,d_PP_ADP_pAMPK,d_PP_ATP_pAMPK,d_AMPKAR,d_pAMPKAR,d_AMPKAR_pAMPK,d_AMPKAR_AMP_pAMPK,d_AMPKAR_ADP_pAMPK,d_PP1,d_PP1_pAMPKAR]
+        return [d_AMP,d_ADP,d_ATP,d_PCr,d_AMPK,d_pAMPK,d_AMP_AMPK,d_ADP_AMPK,d_ATP_AMPK,d_AMP_pAMPK,d_ADP_pAMPK,d_ATP_pAMPK,d_CaMKK,d_CaMKK_AMPK,d_CaMKK_AMP_AMPK,d_CaMKK_ADP_AMPK,d_CaMKK_ATP_AMPK,d_LKB1,d_LKB1_AMPK,d_LKB1_AMP_AMPK,d_LKB1_ADP_AMPK,d_LKB1_ATP_AMPK,d_PP,d_PP_pAMPK,d_PP_AMP_pAMPK,d_PP_ADP_pAMPK,d_PP_ATP_pAMPK,d_AMPKAR,d_pAMPKAR,d_AMPKAR_pAMPK,d_AMPKAR_AMP_pAMPK,d_AMPKAR_ADP_pAMPK,d_AMPKAR_ATP_pAMPK,d_PP1,d_PP1_pAMPKAR]
 
 
     def set_kGly(self, kGly):

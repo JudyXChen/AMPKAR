@@ -73,6 +73,7 @@
         "LKB1_AMPK": 0.0,
         "LKB1_AMP_AMPK": 0.0,
         "LKB1_ADP_AMPK": 0.0,
+        "LKB1_ATP_AMPK": 0.0,
         "PP": 1.0,
         "PP_pAMPK": 0.0,
         "PP_AMP_pAMPK": 0.0,
@@ -83,6 +84,7 @@
         "AMPKAR_pAMPK": 0.0,
         "AMPKAR_AMP_pAMPK": 0.0,
         "AMPKAR_ADP_pAMPK": 0.0,
+        "AMPKAR_ATP_pAMPK": 0.0,
         "PP1": 1.0,
         "PP1_pAMPKAR": 0.0
     },
@@ -91,6 +93,7 @@
         "AMPKAR_pAMPK",
         "AMPKAR_AMP_pAMPK",
         "AMPKAR_ADP_pAMPK",
+        "AMPKAR_ATP_pAMPK",
         "pAMPKAR",
         "PP1_pAMPKAR"
     ],
