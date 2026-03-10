@@ -64,10 +64,10 @@ for model in models:
 
         ############ plot posterior predictive for each condition
         dat = {
-            'WT':{'data': wt_data, 'times': wt_times, 'color': wt_color,
-                  'llike': 'llike_WT', 'det': 'WT', 'label': 'WT'},
-            'LKB1_KD':{'data': lkb1_data, 'times': lkb1_times, 'color': lkb1_color,
-                        'llike': 'llike_LKB1_KO', 'det': 'LKB1_KO', 'label': 'LKB1 KD'},
+            'LKB1wt':{'data': wt_data, 'times': wt_times, 'color': wt_color,
+                  'llike': 'llike_WT', 'det': 'WT', 'label': 'LKB1wt'},
+            'LKB1kd':{'data': lkb1_data, 'times': lkb1_times, 'color': lkb1_color,
+                        'llike': 'llike_LKB1_KO', 'det': 'LKB1_KO', 'label': 'LKB1kd'},
         }
 
         for cond in dat.keys():
@@ -91,14 +91,14 @@ for model in models:
 
                 ax.set_xlabel('Time (min)', fontsize=fontsize_label)
                 ax.set_ylabel('Fraction active AMPKAR', fontsize=fontsize_label)
-                ax.set_title(dat[cond]['label'] + ' — Posterior Predictive', fontsize=fontsize_title)
+                ax.set_title(dat[cond]['label'] + ' — Posterior Predictive Check', fontsize=fontsize_title)
                 ax.tick_params(labelsize=fontsize_tick)
                 ax.set_ylim(0, 1.5)
                 ax.set_xlim(0, None)
 
                 fig.tight_layout()
-                plt.savefig(save_dir + f'{cond}_ppc_{sampler}.pdf', transparent=True, bbox_inches='tight')
-                plt.savefig(save_dir + f'{cond}_ppc_{sampler}.png', dpi=300, bbox_inches='tight')
+                plt.savefig(save_dir + f'{cond}_ppc.pdf', transparent=True, bbox_inches='tight')
+                plt.savefig(save_dir + f'{cond}_ppc.png', dpi=300, bbox_inches='tight')
                 plt.close(fig)
                 print(f"Saved {cond} posterior predictive plot.")
             else:
@@ -125,20 +125,20 @@ for model in models:
                             np.hstack(([0], trajectories[i,:])),
                             color=dat[cond]['color'], alpha=0.15, linewidth=0.8)
 
-                export_legend(leg, save_dir + f'{cond}_posterior_legend_' + sampler + '.pdf')
+                export_legend(leg, save_dir + f'{cond}_posterior_legend.pdf')
                 leg.remove()
 
                 ax.set_xlabel('Time (min)', fontsize=fontsize_label)
                 ax.set_ylabel('Fraction active AMPKAR', fontsize=fontsize_label)
-                ax.set_title(dat[cond]['label'] + ' — Model Posterior', fontsize=fontsize_title)
+                ax.set_title(dat[cond]['label'] + ' — ODE Posterior Trajectories', fontsize=fontsize_title)
                 ax.tick_params(labelsize=fontsize_tick)
                 ax.set_ylim(0, 1.3)
                 ax.set_xlim(0, None)
 
                 fig.tight_layout()
-                plt.savefig(save_dir + f'{cond}_posterior_{sampler}.pdf',
+                plt.savefig(save_dir + f'{cond}_posterior.pdf',
                             transparent=True, bbox_inches='tight')
-                plt.savefig(save_dir + f'{cond}_posterior_{sampler}.png',
+                plt.savefig(save_dir + f'{cond}_posterior.png',
                             dpi=300, bbox_inches='tight')
                 plt.close(fig)
                 print(f"Saved {cond} model posterior plot.")
