@@ -22,5 +22,9 @@ build/
 # Results
 results/
 
+# Generated plots in data directory
+AMPKARkey_data/*.pdf
+AMPKARkey_data/*.png
+
 # Notes 
 *.md
