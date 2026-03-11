@@ -5,7 +5,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.patches as mpatches
 import seaborn as sns
 import sys
 from scipy.stats import norm
@@ -53,11 +52,13 @@ conditions = {
         'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
         'llike_name': 'llike_WT',
         'det_name': 'WT',
+        'label': 'LKB1wt',
     },
     'LKB1_KO': {
         'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_Iono.npz',
         'llike_name': 'llike_LKB1_KO',
         'det_name': 'LKB1_KO',
+        'label': 'LKB1kd',
     },
 }
 
@@ -203,27 +204,31 @@ if len(elpd_df) > 0:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(x_labels, fontsize=9)
         ax.set_ylabel('ELPD (LOO)', fontsize=11)
-        ax.set_title(f'{cond} — Expected Log Pointwise Predictive Density', fontsize=12)
+        cond_label = conditions[cond].get('label', cond)
+        ax.set_title(f'{cond_label} — Expected Log Pointwise Predictive Density', fontsize=12)
         ax.axhline(0, color='black', linewidth=0.5, linestyle='--')
         ax.tick_params(labelsize=9)
 
         fig.tight_layout()
-        plt.savefig(save_dir + f'elpd_{cond}.pdf', transparent=True, bbox_inches='tight')
-        plt.savefig(save_dir + f'elpd_{cond}.png', dpi=300, bbox_inches='tight')
+        plt.savefig(save_dir + f'elpd_{cond_label}.pdf', transparent=True, bbox_inches='tight')
+        plt.savefig(save_dir + f'elpd_{cond_label}.png', dpi=300, bbox_inches='tight')
         plt.close(fig)
-        print(f"Saved ELPD plot for {cond}")
+        print(f"Saved ELPD plot for {cond_label}")
 
     ############ Plot: Combined ELPD (averaged over conditions) ############
     avg_elpd = elpd_df.groupby(['model', 'model_label', 'sampler'], sort=False).agg(
         avg_elpd=('elpd_loo', 'mean'),
         avg_se=('se', 'mean')
     ).reset_index()
+    avg_elpd['model'] = pd.Categorical(avg_elpd['model'], categories=model_order, ordered=True)
+    avg_elpd = avg_elpd.sort_values('model')
 
-    fig, ax = plt.subplots(figsize=(max(3, len(avg_elpd) * 1.2), 3))
+    n_models = len(avg_elpd)
+    fig, ax = plt.subplots(figsize=(max(3, n_models * 1.2), 3))
 
     x_labels = [row['model_label'] for _, row in avg_elpd.iterrows()]
-    x_pos = np.arange(len(avg_elpd))
-    colors_list = [sns.color_palette("colorblind")[i] for i in range(len(avg_elpd))]
+    x_pos = np.arange(n_models)
+    colors_list = [sns.color_palette("colorblind")[i] for i in range(n_models)]
 
     bars = ax.bar(x_pos, avg_elpd['avg_elpd'].values, yerr=avg_elpd['avg_se'].values,
                    capsize=4, color=colors_list, edgecolor='black', linewidth=0.8, alpha=0.8)
@@ -234,11 +239,6 @@ if len(elpd_df) > 0:
     ax.set_title('Average ELPD across Conditions', fontsize=12)
     ax.axhline(0, color='black', linewidth=0.5, linestyle='--')
     ax.tick_params(labelsize=9)
-
-    # Legend for samplers
-    handles = [mpatches.Patch(facecolor=sampler_colors[s], edgecolor='black',
-               alpha=0.8, label=s) for s in samplers if s in sampler_colors]
-    ax.legend(handles=handles, fontsize=9, loc='best')
 
     fig.tight_layout()
     plt.savefig(save_dir + f'elpd_combined.pdf', transparent=True, bbox_inches='tight')
