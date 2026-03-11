@@ -1,4 +1,4 @@
-#! /bin/zsh
+#!/bin/bash
 # Run joint WT + LKB1kd Pathfinder inference for all 4 models sequentially.
 # Run from: cd src/ampk_models/param_est
 
