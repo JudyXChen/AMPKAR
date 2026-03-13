@@ -44,6 +44,9 @@ class MA_phos_CaMKK2(eqx.Module):
     Kp: float
     KeqCK: float
     TCr: float
+    # Optional time-dependent calcium input for Iono mode.
+    # If provided, overrides y[35] (Ca state) with ca_func(t).
+    ca_func: object = eqx.field(default=None, static=True)
 
 
     def __call__(self, t, y, args):
@@ -125,6 +128,10 @@ class MA_phos_CaMKK2(eqx.Module):
         CaM                 = y[36]
         CaCaM               = y[37]
         CaMKK_act           = y[38]  # ACTIVE CaMKK pool
+
+        # Override Ca with external time-dependent input if provided (Iono mode)
+        if self.ca_func is not None:
+            Ca = self.ca_func(t)
 
         # =====================================================================
         # CALCIUM-CaMKK2 ACTIVATION CASCADE
@@ -266,7 +273,7 @@ class MA_phos_CaMKK2(eqx.Module):
         d_PP1 = -J45+J46
         d_PP1_pAMPKAR = J45-J46
         # Calcium-CaMKK2 cascade
-        d_Ca = -4*JCa                                                        # 4:1 stoichiometry
+        d_Ca = 0.0 if self.ca_func is not None else -4*JCa                    # 0 if externally driven
         d_CaM = -JCa
         d_CaCaM = JCa
         d_CaMKK_act = JCaMKK_act - JCaMKK_deact - J7+J8-J9+J11-J12+J14-J15+J17  # active pool

@@ -14,6 +14,9 @@ from plotting_helper_funcs import *
 
 mpl.rcParams['figure.autolayout'] = True
 
+############ Configuration ############
+compartment = sys.argv[1] if len(sys.argv) > 1 else "Iono"  # "Iono" or "2DG"
+
 samplers = ["Pathfinder", "ADVI"]
 sampler_colors = {"Pathfinder": sns.color_palette("colorblind")[0],
                   "ADVI": sns.color_palette("colorblind")[1]}
@@ -130,7 +133,7 @@ for model, config in model_configs.items():
     # Load idata for each sampler
     idatas = {}
     for sampler in samplers:
-        fname = data_dir + model + '_Iono_mcmc_samples_' + sampler + '.nc'
+        fname = data_dir + model + f'_{compartment}_mcmc_samples_' + sampler + '.nc'
         if os.path.exists(fname):
             idatas[sampler] = az.from_netcdf(fname)
             print(f"Loaded {sampler}")

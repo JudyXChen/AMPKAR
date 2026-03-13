@@ -27,6 +27,8 @@ jax.config.update("jax_enable_x64", True)
 mpl.rcParams['figure.autolayout'] = True
 
 ############ Configuration ############
+compartment = sys.argv[1] if len(sys.argv) > 1 else "Iono"  # "Iono" or "2DG"
+
 models = {
     "MA_nonessential": {
         'label': r'MA $\alpha$',
@@ -68,13 +70,13 @@ camkk2ko_color = sns.color_palette("colorblind")[2]
 
 ############ Load data (for overlay) ############
 wt_data, _, wt_times = load_data(
-    '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
+    f'../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_{compartment}.npz',
     to_seconds=False, constant_std=False, exclude_zero_std=True)
 lkb1_data, _, lkb1_times = load_data(
-    '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_Iono.npz',
+    f'../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_{compartment}.npz',
     to_seconds=False, constant_std=False, exclude_zero_std=True)
 _, _, times_sec = load_data(
-    '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
+    f'../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_{compartment}.npz',
     to_seconds=True, constant_std=False, exclude_zero_std=True)
 
 with open(metab_params_file, 'r') as f:
@@ -115,7 +117,7 @@ for model_name, model_cfg in models.items():
     save_dir = save_dir_base + model_name + '/'
 
     # Check if inference results exist
-    nc_file = data_dir + model_name + '_Iono_mcmc_samples_Pathfinder.nc'
+    nc_file = data_dir + model_name + f'_{compartment}_mcmc_samples_Pathfinder.nc'
     try:
         idata = az.from_netcdf(nc_file)
     except FileNotFoundError:
@@ -171,14 +173,14 @@ for model_name, model_cfg in models.items():
         'LKB1kd': {
             'zero_idxs': lkb1_kd_idxs,
             'color': lkb1kd_color,
-            'label': 'LKB1kd',
+            'label': 'HeLa WT',
             'data': lkb1_data,
             'times_min': lkb1_times,
         },
         'CaMKK2_KO': {
             'zero_idxs': camkk2_ko_idxs,
             'color': camkk2ko_color,
-            'label': 'CaMKK2 KO',
+            'label': 'CaMKK2 KO + LKB1wt',
             'data': None,
             'times_min': wt_times,
         },

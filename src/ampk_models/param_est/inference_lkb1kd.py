@@ -47,6 +47,7 @@ def parse_args(raw_args=None):
     parser.add_argument("-model_info_file", type=str, help="JSON file with relevant info. \
                         Model params, initial conditions, and AMPKAR states.")
     parser.add_argument("-metab_params_file", type=str, help="Metabolism model parameters. Should be a JSON")
+    parser.add_argument("-calcium_signal_file", type=str, default=None, help="Path to calcium signal JSON for CaMKK2 Iono mode. If provided, rhs_stress uses ca_func and basal metab params.")
     parser.add_argument("-savedir", type=str, help="Path to save results. Defaults to current directory.")
     # MCMC sampling
     parser.add_argument("-prior_family", type=str, default="[['Gamma()',['alpha', 'beta']]]", help="Family of priors to use. Defaults to 'lognormal'.")
@@ -136,11 +137,24 @@ def main(raw_args=None):
     ###############################################
     #                   Model RHS                  #
     ################################################
+    # Load calcium signal if provided (for CaMKK2 Iono mode)
+    ca_func = None
+    if args.calcium_signal_file is not None:
+        sys.path.append("../calcium/")
+        from calcium_signal import load_calcium_signal
+        ca_func, _ = load_calcium_signal(args.calcium_signal_file)
+        print(f"Loaded calcium signal from {args.calcium_signal_file}")
+
     try:
         rhs = eval(args.model + '(' + ','.join(str(elm) for elm in basal_params) \
             + ')')
-        rhs_stress = eval(args.model + '(' + ','.join(str(elm) for elm in stress_params) \
-             + ')')
+        if ca_func is not None:
+            # Iono mode: rhs_stress uses basal metab params + ca_func
+            rhs_stress = eval(args.model + '(' + ','.join(str(elm) for elm in basal_params) \
+                + ', ca_func=ca_func)')
+        else:
+            rhs_stress = eval(args.model + '(' + ','.join(str(elm) for elm in stress_params) \
+                 + ')')
         rhs = dfrx.ODETerm(rhs)
         rhs_stress = dfrx.ODETerm(rhs_stress)
     except:

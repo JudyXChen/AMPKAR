@@ -22,6 +22,9 @@ jax.config.update("jax_enable_x64", True)
 
 mpl.rcParams['figure.autolayout'] = True
 
+############ Configuration ############
+compartment = sys.argv[1] if len(sys.argv) > 1 else "Iono"  # "Iono" or "2DG"
+
 samplers = ["Pathfinder", "ADVI"] #, "Nutpie", "NUTS"]
 n_trajectories = 10
 
@@ -41,9 +44,9 @@ fontsize_tick = 8
 fontsize_title = 11
 
 ## Load data (times in minutes for plotting)
-wt_data, _, wt_times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
+wt_data, _, wt_times = load_data(f'../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_{compartment}.npz',
                                      to_seconds=False, constant_std=False, exclude_zero_std=True)
-lkb1_data, _, lkb1_times = load_data('../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_Iono.npz',
+lkb1_data, _, lkb1_times = load_data(f'../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_{compartment}.npz',
                                      to_seconds=False, constant_std=False, exclude_zero_std=True)
 
 for model in models:
@@ -54,7 +57,7 @@ for model in models:
             os.makedirs(save_dir)
 
         # load the idata
-        fname = data_dir + model + '_Iono_mcmc_samples_' + sampler + '.nc'
+        fname = data_dir + model + f'_{compartment}_mcmc_samples_' + sampler + '.nc'
         if not os.path.exists(fname):
             print(f"File {fname} does not exist. Skipping.")
             continue
@@ -65,9 +68,9 @@ for model in models:
         ############ plot posterior predictive for each condition
         dat = {
             'WT':{'data': wt_data, 'times': wt_times, 'color': wt_color,
-                  'llike': 'llike_WT', 'det': 'WT', 'label': 'WT'},
+                  'llike': 'llike_WT', 'det': 'WT', 'label': 'LKB1wt'},
             'LKB1_KD':{'data': lkb1_data, 'times': lkb1_times, 'color': lkb1_color,
-                        'llike': 'llike_LKB1_KO', 'det': 'LKB1_KO', 'label': 'LKB1 KD'},
+                        'llike': 'llike_LKB1_KO', 'det': 'LKB1_KO', 'label': 'HeLa WT'},
         }
 
         for cond in dat.keys():

@@ -1,0 +1,44 @@
+{
+    "description": "Bi-exponential fit to Hill-calibrated [Ca2+] from RCaMP1h Iono data",
+    "data_source": "260307_HeLaAMPKAR3_LKB1wt_kd.xlsx, columns 16-17 (MEAN_RFPnorm, STD_RFPnorm)",
+    "calibration": {
+        "method": "Inverse Hill equation (RCaMP1h)",
+        "variant": "RCaMP1h",
+        "Kd_uM": 1.3,
+        "Hill_n": 2.5,
+        "dynamic_range": 10.6,
+        "F_min": 0.950119257214572,
+        "F_max": 10.071264126474462,
+        "source": "Akerboom et al. 2013"
+    },
+    "model": "Ca(t) = Ca_plat + A_ca * (1 - exp(-t/tau_rise)) * exp(-t/tau_decay), t in minutes, Ca in uM",
+    "fit_params": {
+        "Ca_plat_uM": 0.4089380971643031,
+        "A_ca_uM": 0.5073899918109765,
+        "tau_rise_s": 33.555530359903315,
+        "tau_decay_s": 730.2691094631784
+    },
+    "Ca_basal_uM": 0.1,
+    "derived": {
+        "t_peak_s": 100.25876975400271,
+        "Ca_peak_uM": 0.8289485857443086,
+        "Ca_plateau_uM": 0.4089380971643031
+    },
+    "fit_quality": {
+        "R_squared": 0.9914530453146255
+    },
+    "experimental_conditions": {
+        "ionomycin_nM": 500,
+        "extracellular_CaCl2_mM": 5.0,
+        "Fmax_calibration": false
+    },
+    "units": {
+        "time": "seconds",
+        "concentration": "uM"
+    },
+    "notes": [
+        "Hill-calibrated: raw fluorescence -> [Ca2+] via inverse Hill (RCaMP1h), then bi-exponential fit.",
+        "Ca_basal = 0.1 uM used for t < 0 (Hill gives ~0 at baseline fluorescence).",
+        "Fit params are in uM directly \u2014 no separate scaling step needed."
+    ]
+}

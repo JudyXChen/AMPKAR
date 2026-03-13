@@ -16,6 +16,8 @@ from plotting_helper_funcs import *
 mpl.rcParams['figure.autolayout'] = True
 
 ############ Configuration ############
+compartment = sys.argv[1] if len(sys.argv) > 1 else "Iono"  # "Iono" or "2DG"
+
 # Samplers to compare
 samplers = ["Pathfinder"] #, "ADVI"]
 sampler_colors = {
@@ -49,16 +51,16 @@ models = {
 # Conditions and their data files
 conditions = {
     'WT': {
-        'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_Iono.npz',
+        'data_file': f'../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1wt_{compartment}.npz',
         'llike_name': 'llike_WT',
         'det_name': 'WT',
         'label': 'LKB1wt',
     },
     'LKB1_KO': {
-        'data_file': '../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_Iono.npz',
+        'data_file': f'../../../AMPKARkey_data/HeLaAMPKAR3_260307_LKB1kd_{compartment}.npz',
         'llike_name': 'llike_LKB1_KO',
         'det_name': 'LKB1_KO',
-        'label': 'LKB1kd',
+        'label': 'HeLa WT',
     },
 }
 
@@ -83,7 +85,7 @@ idata_dict = {}  # {(model_name, sampler): idata}
 for model_name, model_info in models.items():
     for sampler in samplers:
 
-        fname = data_dir + model_name + '_Iono_mcmc_samples_' + sampler + '.nc'
+        fname = data_dir + model_name + f'_{compartment}_mcmc_samples_' + sampler + '.nc'
         if not os.path.exists(fname):
             print(f"  File not found: {fname}, skipping.")
             continue
@@ -210,8 +212,9 @@ if len(elpd_df) > 0:
         ax.tick_params(labelsize=9)
 
         fig.tight_layout()
-        plt.savefig(save_dir + f'elpd_{cond_label}.pdf', transparent=True, bbox_inches='tight')
-        plt.savefig(save_dir + f'elpd_{cond_label}.png', dpi=300, bbox_inches='tight')
+        fname_label = cond_label.replace(' ', '_')
+        plt.savefig(save_dir + f'elpd_{fname_label}.pdf', transparent=True, bbox_inches='tight')
+        plt.savefig(save_dir + f'elpd_{fname_label}.png', dpi=300, bbox_inches='tight')
         plt.close(fig)
         print(f"Saved ELPD plot for {cond_label}")
 
